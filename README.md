@@ -40,6 +40,12 @@ Windows 桌面快捷方式会调用项目里的 `launch.ps1`：
 powershell -ExecutionPolicy Bypass -File .\launch.ps1
 ```
 
+重新创建桌面快捷方式：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
+```
+
 ## 数据说明
 
 - 摘录和标签保存在浏览器本地存储。
