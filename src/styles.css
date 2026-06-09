@@ -580,6 +580,100 @@ button {
   opacity: 0.35;
 }
 
+.readingHeatmap {
+  width: 240px;
+  color: currentColor;
+  opacity: 0.78;
+}
+
+.heatmapMonths {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 5px 28px;
+  color: currentColor;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.78;
+}
+
+.heatmapMonths span {
+  min-width: 0;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.heatmapBody {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 4px;
+}
+
+.heatmapWeekdays {
+  display: grid;
+  grid-template-rows: repeat(7, 8px);
+  gap: 4px;
+  color: currentColor;
+  font-size: 9px;
+  line-height: 8px;
+  opacity: 0.72;
+  text-align: right;
+}
+
+.heatmapCells {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 8px);
+  gap: 4px;
+}
+
+.heatCell {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(238, 231, 189, 0.08);
+}
+
+.heatCell.level1 {
+  background: rgba(82, 147, 75, 0.6);
+}
+
+.heatCell.level2 {
+  background: rgba(75, 177, 83, 0.72);
+}
+
+.heatCell.level3 {
+  background: rgba(74, 205, 91, 0.86);
+}
+
+.heatCell.level4 {
+  background: #64e36c;
+}
+
+.shareCard.light .heatCell,
+.shareCard.paper .heatCell {
+  background: rgba(36, 42, 32, 0.1);
+}
+
+.shareCard.light .heatCell.level1,
+.shareCard.paper .heatCell.level1 {
+  background: rgba(68, 132, 67, 0.55);
+}
+
+.shareCard.light .heatCell.level2,
+.shareCard.paper .heatCell.level2 {
+  background: rgba(60, 160, 72, 0.68);
+}
+
+.shareCard.light .heatCell.level3,
+.shareCard.paper .heatCell.level3 {
+  background: rgba(50, 180, 72, 0.82);
+}
+
+.shareCard.light .heatCell.level4,
+.shareCard.paper .heatCell.level4 {
+  background: #29bf56;
+}
+
 .cardRule {
   position: relative;
   z-index: 1;
@@ -732,6 +826,39 @@ button {
 .shareCard.flomo .dotMatrix span {
   width: 8px;
   height: 8px;
+  border-radius: 2px;
+}
+
+.shareCard.flomo .readingHeatmap {
+  width: 178px;
+}
+
+.shareCard.flomo .heatmapMonths {
+  margin-left: 22px;
+  gap: 3px;
+  font-size: 8px;
+}
+
+.shareCard.flomo .heatmapBody {
+  grid-template-columns: 18px 1fr;
+  gap: 3px;
+}
+
+.shareCard.flomo .heatmapWeekdays {
+  grid-template-rows: repeat(7, 6px);
+  gap: 3px;
+  font-size: 7px;
+  line-height: 6px;
+}
+
+.shareCard.flomo .heatmapCells {
+  grid-template-rows: repeat(7, 6px);
+  gap: 3px;
+}
+
+.shareCard.flomo .heatCell {
+  width: 6px;
+  height: 6px;
   border-radius: 2px;
 }
 

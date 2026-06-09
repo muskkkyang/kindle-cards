@@ -151,6 +151,76 @@ function getRecentCutoff(memos: Memo[]) {
   return memos.reduce((max, memo) => Math.max(max, Date.parse(memo.importedAt || '') || 0), 0);
 }
 
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function parseMemoDate(memo: Memo) {
+  const raw = memo.addedAtRaw || '';
+  const chineseDate = raw.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+  if (chineseDate) {
+    return new Date(Number(chineseDate[1]), Number(chineseDate[2]) - 1, Number(chineseDate[3]));
+  }
+
+  const parsedRaw = Date.parse(raw);
+  if (!Number.isNaN(parsedRaw)) return new Date(parsedRaw);
+
+  const parsedImported = Date.parse(memo.importedAt || '');
+  if (!Number.isNaN(parsedImported)) return new Date(parsedImported);
+
+  return null;
+}
+
+function buildReadingHeatmap(memos: Memo[], weekCount: number) {
+  const counts = new Map<string, number>();
+  const dates = memos.map(parseMemoDate).filter((date): date is Date => Boolean(date));
+
+  dates.forEach((date) => {
+    const key = toDateKey(date);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+
+  const latest = dates.reduce((max, date) => Math.max(max, date.getTime()), Date.now());
+  const end = new Date(latest);
+  end.setHours(0, 0, 0, 0);
+  end.setDate(end.getDate() + (6 - end.getDay()));
+
+  const start = new Date(end);
+  start.setDate(end.getDate() - weekCount * 7 + 1);
+
+  const cells = [];
+  const monthLabels = new Map<number, string>();
+  const seenMonthLabels = new Set<string>();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  for (let week = 0; week < weekCount; week += 1) {
+    for (let day = 0; day < 7; day += 1) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + week * 7 + day);
+      const key = toDateKey(date);
+      const count = counts.get(key) || 0;
+
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      if (date.getDate() <= 7 && !monthLabels.has(week) && !seenMonthLabels.has(monthKey)) {
+        monthLabels.set(week, monthNames[date.getMonth()]);
+        seenMonthLabels.add(monthKey);
+      }
+
+      cells.push({
+        key,
+        count,
+        level: count === 0 ? 0 : Math.min(4, Math.ceil(count / 2)),
+      });
+    }
+  }
+
+  return {
+    cells,
+    months: Array.from({ length: weekCount }, (_, index) => monthLabels.get(index) || ''),
+    weekCount,
+  };
+}
+
 function App() {
   const settings = loadSettings();
   const initialMemos = loadMemos();
@@ -432,6 +502,7 @@ function App() {
               size={size}
               memoCount={memos.length}
               bookCount={books}
+              memos={memos}
             />
             <div className="editor">
               <label>
@@ -469,8 +540,9 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
   size: SizePreset;
   memoCount: number;
   bookCount: number;
+  memos: Memo[];
 }>(
-  ({ memo, template, theme, size, memoCount, bookCount }, ref) => {
+  ({ memo, template, theme, size, memoCount, bookCount, memos }, ref) => {
     const location = formatLocation(memo);
     const quote = (memo.quote || memo.comment || '').trim();
     const date = formatCardDate(memo.importedAt);
@@ -479,6 +551,7 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
     const quoteScale = getQuoteScale(quote);
     const dimensions = getCardDimensions(size, template, quote, memo.comment || '');
     const previewScale = Math.min(1, 420 / dimensions.width);
+    const heatmap = buildReadingHeatmap(memos, size === 'flomo' ? 18 : 26);
 
     return (
       <div className="previewStage">
@@ -508,9 +581,7 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
 
           <div className="cardMetaRow">
             <strong>{memoCount} MEMOS · {bookCount} BOOKS</strong>
-            <div className="dotMatrix" aria-hidden="true">
-              {Array.from({ length: 48 }).map((_, index) => <span key={index} />)}
-            </div>
+            <ReadingHeatmap heatmap={heatmap} />
           </div>
 
           <div className="cardRule" />
@@ -524,5 +595,35 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
     );
   },
 );
+
+function ReadingHeatmap({ heatmap }: ReturnType<typeof buildReadingHeatmap> extends infer T ? { heatmap: T } : never) {
+  return (
+    <div className="readingHeatmap" aria-label="reading activity heatmap">
+      <div className="heatmapMonths" aria-hidden="true" style={{ gridTemplateColumns: `repeat(${heatmap.weekCount}, 1fr)` }}>
+        {heatmap.months.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}
+      </div>
+      <div className="heatmapBody">
+        <div className="heatmapWeekdays" aria-hidden="true">
+          <span />
+          <span>Mon</span>
+          <span />
+          <span>Wed</span>
+          <span />
+          <span>Fri</span>
+          <span />
+        </div>
+        <div className="heatmapCells" style={{ gridTemplateColumns: `repeat(${heatmap.weekCount}, 1fr)` }}>
+          {heatmap.cells.map((cell) => (
+            <span
+              key={cell.key}
+              className={`heatCell level${cell.level}`}
+              title={`${cell.key}: ${cell.count}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 createRoot(document.getElementById('root')!).render(<App />);
