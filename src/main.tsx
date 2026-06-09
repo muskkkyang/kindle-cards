@@ -454,7 +454,7 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
           <div className="cardHeader">
             <div className="quoteMark">“</div>
             <div className="cardIdentity">
-              <strong>Mushkkk</strong>
+              <strong>Muskkk</strong>
               <span>{date}</span>
             </div>
           </div>
