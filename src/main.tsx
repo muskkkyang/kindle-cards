@@ -49,6 +49,41 @@ const sizePresets: Record<SizePreset, { label: string; width: number; height: nu
   wide: { label: '公众号横图', width: 1200, height: 675 },
 };
 
+function countContentLines(text: string, charsPerLine: number) {
+  const normalized = text.trim();
+  if (!normalized) return 0;
+  return normalized
+    .split(/\n+/)
+    .reduce((total, line) => total + Math.max(1, Math.ceil(line.replace(/\s/g, '').length / charsPerLine)), 0);
+}
+
+function getCardDimensions(size: SizePreset, template: Template, quote: string, comment: string) {
+  const preset = sizePresets[size];
+  const quoteLength = quote.replace(/\s/g, '').length;
+  const commentLength = comment.replace(/\s/g, '').length;
+
+  if (size !== 'flomo') {
+    const quoteLines = countContentLines(quote, size === 'wide' ? 42 : 26);
+    const commentLines = template === 'comment' ? countContentLines(comment, size === 'wide' ? 48 : 30) : 0;
+    const extraHeight = Math.max(0, quoteLines - 5) * 58 + Math.max(0, commentLines - 2) * 42;
+    return {
+      width: preset.width,
+      height: preset.height + extraHeight,
+    };
+  }
+
+  const wantsRoom = template === 'comment' || quoteLength > 34 || commentLength > 18;
+  const width = wantsRoom ? Math.min(980, Math.max(720, 720 + Math.max(0, quoteLength - 28) * 7)) : 720;
+  const quoteLines = countContentLines(quote, width >= 900 ? 42 : 32);
+  const commentLines = template === 'comment' ? countContentLines(comment, width >= 900 ? 44 : 34) : 0;
+  const extraHeight = Math.max(0, quoteLines - 2) * 34 + Math.max(0, commentLines - 1) * 34;
+
+  return {
+    width,
+    height: Math.max(498, 498 + extraHeight),
+  };
+}
+
 function safeGet(key: string) {
   try {
     return window.localStorage?.getItem(key) || memoryStore.get(key) || '';
@@ -205,7 +240,7 @@ function App() {
 
   async function exportCard(memo = selectedMemo) {
     if (!cardRef.current || !memo) return;
-    const preset = sizePresets[size];
+    const dimensions = getCardDimensions(size, template, memo.quote || memo.comment || '', memo.comment || '');
     const previousTransform = cardRef.current.style.transform;
     cardRef.current.style.transform = 'none';
     let dataUrl = '';
@@ -214,11 +249,11 @@ function App() {
       dataUrl = await toPng(cardRef.current, {
         cacheBust: true,
         pixelRatio: 1,
-        width: preset.width,
-        height: preset.height,
+        width: dimensions.width,
+        height: dimensions.height,
         style: {
-          width: `${preset.width}px`,
-          height: `${preset.height}px`,
+          width: `${dimensions.width}px`,
+          height: `${dimensions.height}px`,
         },
       });
     } finally {
@@ -436,20 +471,21 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
   bookCount: number;
 }>(
   ({ memo, template, theme, size, memoCount, bookCount }, ref) => {
-    const preset = sizePresets[size];
     const location = formatLocation(memo);
     const quote = (memo.quote || memo.comment || '').trim();
     const date = formatCardDate(memo.importedAt);
     const primaryTag = memo.tags[0] || '书摘随记';
     const source = [compactTitle(memo.title), memo.author, location].filter(Boolean).join(' · ');
     const quoteScale = getQuoteScale(quote);
+    const dimensions = getCardDimensions(size, template, quote, memo.comment || '');
+    const previewScale = Math.min(1, 420 / dimensions.width);
 
     return (
       <div className="previewStage">
         <div
           ref={ref}
           className={`shareCard ${theme} ${template} ${size} ${quoteScale}`}
-          style={{ width: preset.width, height: preset.height, transform: `scale(${Math.min(1, 420 / preset.width)})` }}
+          style={{ width: dimensions.width, height: dimensions.height, transform: `scale(${previewScale})` }}
         >
           <div className="cardHeader">
             <div className="quoteMark">“</div>

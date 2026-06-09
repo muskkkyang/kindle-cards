@@ -52,8 +52,13 @@ function makeFingerprint(parts) {
 function shouldMerge(highlight, note) {
   if (!highlight || !note) return false;
   if (highlight.title !== note.title || highlight.author !== note.author) return false;
-  if (highlight.locationStart == null || note.locationStart == null) return false;
-  return Math.abs(highlight.locationStart - note.locationStart) <= 4;
+  if (highlight.locationStart != null && note.locationStart != null) {
+    return Math.abs(highlight.locationStart - note.locationStart) <= 4;
+  }
+  if (highlight.page && note.page) {
+    return highlight.page === note.page;
+  }
+  return false;
 }
 
 export function parseKindleClippings(rawText) {
