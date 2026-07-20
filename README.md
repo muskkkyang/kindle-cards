@@ -1,6 +1,22 @@
-# Kindle Memo Cards
+# Kindle Flomo Cards
 
-Kindle 离线摘录到 flomo 风格分享卡片的本地工具。
+把 Kindle 离线摘录整理成 flomo 风格分享卡片的 Windows 本地工具。
+
+## 当前能力
+
+- 自动识别通过 USB 连接的 Kindle，也可手动导入 `My Clippings.txt`。
+- 解析书名、作者、位置、时间、摘录、评论和笔记中的 `#标签`。
+- 在本地筛选、编辑和保存摘录，展示阅读活跃度。
+- 提供金句卡、评论卡、阅读 memo 卡，以及多种主题和常用社交媒体尺寸。
+- 将当前卡片导出为 PNG，不依赖云端服务。
+
+## 项目状态
+
+当前是可在 Windows 本地使用的个人 MVP。核心流程是：
+
+```text
+Kindle / My Clippings.txt → 本地解析与整理 → 卡片预览 → PNG 导出
+```
 
 ## 使用方式
 
@@ -50,7 +66,7 @@ powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
 
 - 摘录和标签保存在浏览器本地存储。
 - 本地服务只读取 USB Kindle 里的 `My Clippings.txt`。
-- 不上传阅读数据。
+- 不上传阅读数据，不需要云端账号或 API 密钥。
 
 ## 支持的卡片
 
@@ -63,3 +79,14 @@ powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
 - 朋友圈/通用：1080x1080
 - 小红书：1080x1440
 - 公众号横图：1200x675
+
+## 主要文件
+
+| 路径 | 用途 |
+| --- | --- |
+| `src/` | 卡片管理、预览与导出界面 |
+| `server.mjs` | Kindle 文件发现、本地 API 与静态服务 |
+| `launch.ps1` | Windows 一键构建、启动与打开页面 |
+| `create-desktop-shortcut.ps1` | 创建桌面快捷方式 |
+
+本仓库保持私有，用于代码与项目资料备份。
