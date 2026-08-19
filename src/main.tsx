@@ -40,6 +40,7 @@ type FilterMode = 'all' | 'recent' | 'untagged';
 
 const STORAGE_KEY = 'kindle-flomo-cards:memos';
 const SETTINGS_KEY = 'kindle-flomo-cards:settings';
+const EXPORT_PIXEL_RATIO = 3;
 const memoryStore = new Map<string, string>();
 
 const sizePresets: Record<SizePreset, { label: string; width: number; height: number }> = {
@@ -59,8 +60,6 @@ function countContentLines(text: string, charsPerLine: number) {
 
 function getCardDimensions(size: SizePreset, template: Template, quote: string, comment: string) {
   const preset = sizePresets[size];
-  const quoteLength = quote.replace(/\s/g, '').length;
-  const commentLength = comment.replace(/\s/g, '').length;
 
   if (size !== 'flomo') {
     const quoteLines = countContentLines(quote, size === 'wide' ? 42 : 26);
@@ -72,11 +71,11 @@ function getCardDimensions(size: SizePreset, template: Template, quote: string, 
     };
   }
 
-  const wantsRoom = template === 'comment' || quoteLength > 34 || commentLength > 18;
-  const width = wantsRoom ? Math.min(980, Math.max(720, 720 + Math.max(0, quoteLength - 28) * 7)) : 720;
-  const quoteLines = countContentLines(quote, width >= 900 ? 42 : 32);
-  const commentLines = template === 'comment' ? countContentLines(comment, width >= 900 ? 44 : 34) : 0;
-  const extraHeight = Math.max(0, quoteLines - 2) * 34 + Math.max(0, commentLines - 1) * 34;
+  const width = preset.width;
+  const charsPerLine = 30;
+  const quoteLines = countContentLines(quote, charsPerLine);
+  const commentLines = template === 'comment' ? countContentLines(comment, Math.max(34, charsPerLine + 8)) : 0;
+  const extraHeight = Math.max(0, quoteLines - 3) * 33 + Math.max(0, commentLines - 1) * 28;
 
   return {
     width,
@@ -138,6 +137,31 @@ function getQuoteScale(text: string) {
   if (length <= 48) return 'mediumText';
   if (length <= 92) return 'longText';
   return 'essayText';
+}
+
+function renderMemoText(text: string) {
+  const lines = text.split('\n');
+  const tagPattern = /#[\p{L}\p{N}_\-\u4e00-\u9fa5]+/gu;
+
+  return lines.flatMap((line, lineIndex) => {
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+
+    Array.from(line.matchAll(tagPattern)).forEach((match, tagIndex) => {
+      const index = match.index ?? 0;
+      if (index > cursor) nodes.push(line.slice(cursor, index));
+      nodes.push(
+        <span className="inlineMemoTag" key={`${lineIndex}-${tagIndex}-${match[0]}`}>
+          {match[0]}
+        </span>,
+      );
+      cursor = index + match[0].length;
+    });
+
+    if (cursor < line.length) nodes.push(line.slice(cursor));
+    if (lineIndex < lines.length - 1) nodes.push(<br key={`br-${lineIndex}`} />);
+    return nodes;
+  });
 }
 
 function compactTitle(title: string) {
@@ -318,7 +342,7 @@ function App() {
     try {
       dataUrl = await toPng(cardRef.current, {
         cacheBust: true,
-        pixelRatio: 1,
+        pixelRatio: EXPORT_PIXEL_RATIO,
         width: dimensions.width,
         height: dimensions.height,
         style: {
@@ -546,11 +570,10 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
     const location = formatLocation(memo);
     const quote = (memo.quote || memo.comment || '').trim();
     const date = formatCardDate(memo.importedAt);
-    const primaryTag = memo.tags[0] || '书摘随记';
     const source = [compactTitle(memo.title), memo.author, location].filter(Boolean).join(' · ');
-    const quoteScale = getQuoteScale(quote);
+    const quoteScale = size === 'flomo' ? 'fixedText' : getQuoteScale(quote);
     const dimensions = getCardDimensions(size, template, quote, memo.comment || '');
-    const previewScale = Math.min(1, 420 / dimensions.width);
+    const previewScale = Math.min(1, 420 / (size === 'flomo' ? sizePresets.flomo.width : dimensions.width));
     const heatmap = buildReadingHeatmap(memos, size === 'flomo' ? 18 : 26);
 
     return (
@@ -569,8 +592,7 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
           </div>
 
           <div className="cardMain">
-            <p className="quoteText">{quote}</p>
-            <div className="tagPill">#{primaryTag}</div>
+            <p className="quoteText">{renderMemoText(quote)}</p>
             {(template === 'comment' && memo.comment && memo.quote) && <p className="commentText">{memo.comment}</p>}
             {template === 'memo' && (
               <div className="cardTags">

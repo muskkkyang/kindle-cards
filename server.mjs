@@ -73,7 +73,7 @@ app.get('/api/kindle-clippings', async (_req, res) => {
 
 if (isProduction) {
   app.use(express.static(path.join(__dirname, 'dist')));
-  app.get('*', (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
 } else {
@@ -85,6 +85,13 @@ if (isProduction) {
   app.use(vite.middlewares);
 }
 
-app.listen(port, '127.0.0.1', () => {
+const server = app.listen(port, '127.0.0.1', () => {
   console.log(`Kindle Memo Cards running at http://127.0.0.1:${port}`);
 });
+
+server.on('error', (error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+
+globalThis.__kindleMemoCardsServer = server;

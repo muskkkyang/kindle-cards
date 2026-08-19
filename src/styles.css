@@ -791,20 +791,24 @@ button {
   gap: 22px;
 }
 
-.shareCard.flomo.shortText .quoteText {
-  font-size: 28px;
-  line-height: 1.35;
+.shareCard.flomo.fixedText .quoteText {
+  font-size: 22px;
+  line-height: 1.52;
 }
 
-.shareCard.flomo.mediumText .quoteText {
-  font-size: 25px;
-  line-height: 1.45;
-}
-
-.shareCard.flomo.longText .quoteText,
-.shareCard.flomo.essayText .quoteText {
+.shareCard.flomo .inlineMemoTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  margin: 0 8px 8px 0;
+  padding: 0 12px;
+  border-radius: 7px;
+  background: #e6ddb2;
+  color: #202120;
   font-size: 21px;
-  line-height: 1.48;
+  font-weight: 650;
+  line-height: 1;
+  vertical-align: baseline;
 }
 
 .shareCard.flomo .tagPill {
@@ -815,7 +819,7 @@ button {
 }
 
 .shareCard.flomo .cardMetaRow strong {
-  font-size: 20px;
+  font-size: 19px;
 }
 
 .shareCard.flomo .dotMatrix {
@@ -830,35 +834,35 @@ button {
 }
 
 .shareCard.flomo .readingHeatmap {
-  width: 178px;
+  width: 214px;
 }
 
 .shareCard.flomo .heatmapMonths {
-  margin-left: 22px;
-  gap: 3px;
-  font-size: 8px;
+  margin-left: 24px;
+  gap: 4px;
+  font-size: 9px;
 }
 
 .shareCard.flomo .heatmapBody {
-  grid-template-columns: 18px 1fr;
-  gap: 3px;
+  grid-template-columns: 20px 1fr;
+  gap: 4px;
 }
 
 .shareCard.flomo .heatmapWeekdays {
-  grid-template-rows: repeat(7, 6px);
-  gap: 3px;
-  font-size: 7px;
-  line-height: 6px;
+  grid-template-rows: repeat(7, 7px);
+  gap: 4px;
+  font-size: 8px;
+  line-height: 7px;
 }
 
 .shareCard.flomo .heatmapCells {
-  grid-template-rows: repeat(7, 6px);
-  gap: 3px;
+  grid-template-rows: repeat(7, 7px);
+  gap: 4px;
 }
 
 .shareCard.flomo .heatCell {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 2px;
 }
 
