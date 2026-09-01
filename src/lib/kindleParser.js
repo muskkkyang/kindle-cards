@@ -6,7 +6,7 @@ function normalizeWhitespace(value) {
 
 function parseTitleLine(line) {
   const trimmed = normalizeWhitespace(line);
-  const match = trimmed.match(/^(.*)\s+\(([^()]+)\)$/);
+  const match = trimmed.match(/^(.*?)\s*[（(]([^()（）]+)[）)]$/);
   if (!match) return { title: trimmed || '未知书籍', author: '' };
   return { title: match[1].trim(), author: match[2].trim() };
 }
@@ -49,6 +49,15 @@ function makeFingerprint(parts) {
   ].join('|');
 }
 
+function makeMergeAnchor(memo) {
+  const position = memo.locationStart != null
+    ? `location:${memo.locationStart}-${memo.locationEnd ?? memo.locationStart}`
+    : memo.page
+      ? `page:${memo.page}`
+      : `content:${normalizeWhitespace(memo.quote || memo.comment).slice(0, 180)}`;
+  return [memo.title, memo.author, memo.type || (memo.quote ? 'highlight' : 'note'), position].join('|');
+}
+
 function shouldMerge(highlight, note) {
   if (!highlight || !note) return false;
   if (highlight.title !== note.title || highlight.author !== note.author) return false;
@@ -59,6 +68,13 @@ function shouldMerge(highlight, note) {
     return highlight.page === note.page;
   }
   return false;
+}
+
+function noteQuality(entry) {
+  const parsed = extractTagsAndComment(entry.rawNote);
+  const chineseCharacters = (parsed.comment.match(/[\u3400-\u9fff]/g) || []).length;
+  const words = parsed.comment.split(/\s+/).filter(Boolean).length;
+  return chineseCharacters * 3 + parsed.comment.length + words * 2 + parsed.tags.length * 4;
 }
 
 export function parseKindleClippings(rawText) {
@@ -98,19 +114,25 @@ export function parseKindleClippings(rawText) {
     if (entry.type !== 'highlight') continue;
 
     const memo = { ...entry };
-    const noteIndex = entries.findIndex((candidate, candidateIndex) => (
-      candidateIndex > index
-      && candidate.type === 'note'
-      && !usedNotes.has(candidateIndex)
-      && shouldMerge(entry, candidate)
-    ));
+    const noteIndexes = [];
+    for (let candidateIndex = index + 1; candidateIndex < entries.length; candidateIndex += 1) {
+      const candidate = entries[candidateIndex];
+      if (candidate.type === 'highlight') break;
+      if (candidate.type === 'note' && !usedNotes.has(candidateIndex) && shouldMerge(entry, candidate)) {
+        noteIndexes.push(candidateIndex);
+      }
+    }
 
-    if (noteIndex >= 0) {
-      usedNotes.add(noteIndex);
-      const parsed = extractTagsAndComment(entries[noteIndex].rawNote);
-      memo.rawNote = entries[noteIndex].rawNote;
+    if (noteIndexes.length > 0) {
+      noteIndexes.forEach((noteIndex) => usedNotes.add(noteIndex));
+      const bestNoteIndex = noteIndexes.reduce((best, current) => (
+        noteQuality(entries[current]) > noteQuality(entries[best]) ? current : best
+      ));
+      const parsed = extractTagsAndComment(entries[bestNoteIndex].rawNote);
+      const tags = noteIndexes.flatMap((noteIndex) => extractTagsAndComment(entries[noteIndex].rawNote).tags);
+      memo.rawNote = entries[bestNoteIndex].rawNote;
       memo.comment = parsed.comment;
-      memo.tags = parsed.tags;
+      memo.tags = [...new Set(tags)];
     }
 
     memo.id = makeFingerprint(memo);
@@ -140,17 +162,38 @@ export function parseKindleClippings(rawText) {
 
 export function mergeMemos(existing, incoming, importedAt = new Date().toISOString()) {
   const byId = new Map(existing.map((memo) => [memo.id, memo]));
+  const byAnchor = new Map(existing.map((memo) => [makeMergeAnchor(memo), memo]));
   let added = 0;
+  let updated = 0;
 
   for (const memo of incoming) {
-    if (byId.has(memo.id)) continue;
+    const current = byId.get(memo.id) || byAnchor.get(makeMergeAnchor(memo));
+    if (current) {
+      const next = {
+        ...current,
+        ...memo,
+        id: current.id,
+        favorite: current.favorite || false,
+        importedAt: current.importedAt,
+      };
+      const changed = ['title', 'author', 'quote', 'comment', 'tags', 'locationStart', 'locationEnd', 'page', 'addedAtRaw']
+        .some((key) => JSON.stringify(current[key]) !== JSON.stringify(next[key]));
+      if (changed) {
+        next.importedAt = importedAt;
+        byId.set(current.id, next);
+        byAnchor.set(makeMergeAnchor(next), next);
+        updated += 1;
+      }
+      continue;
+    }
     byId.set(memo.id, {
       ...memo,
       importedAt,
       favorite: false,
     });
+    byAnchor.set(makeMergeAnchor(memo), memo);
     added += 1;
   }
 
-  return { memos: Array.from(byId.values()), added };
+  return { memos: Array.from(byId.values()), added, updated };
 }

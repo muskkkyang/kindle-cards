@@ -1,15 +1,21 @@
+param(
+  [switch]$NoOpen
+)
+
 $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$PortCandidates = 5173..5180
+$PortCandidates = 4310..4319
 $LogPath = Join-Path $ProjectRoot "kindle-memo-server.log"
+$ErrorLogPath = Join-Path $ProjectRoot "kindle-memo-server-error.log"
 
 function Test-LocalApp {
   param([string]$Url)
 
   try {
-    $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
-    return ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500 -and $response.Content -match "Kindle Memo Cards")
+    $HealthUrl = "$($Url.TrimEnd('/'))/api/health"
+    $response = Invoke-RestMethod -Uri $HealthUrl -TimeoutSec 2
+    return ($response.ok -eq $true -and $response.app -eq "kindle-flomo-cards")
   } catch {
     return $false
   }
@@ -21,7 +27,25 @@ if (-not (Test-Path (Join-Path $ProjectRoot "node_modules"))) {
   npm install
 }
 
-if (-not (Test-Path (Join-Path $ProjectRoot "dist\index.html"))) {
+$DistIndex = Join-Path $ProjectRoot "dist\index.html"
+$BuildInputs = @(
+  (Join-Path $ProjectRoot "src"),
+  (Join-Path $ProjectRoot "index.html"),
+  (Join-Path $ProjectRoot "package.json"),
+  (Join-Path $ProjectRoot "vite.config.ts")
+)
+$LatestInput = $BuildInputs |
+  ForEach-Object {
+    if (Test-Path -LiteralPath $_ -PathType Container) {
+      Get-ChildItem -LiteralPath $_ -Recurse -File
+    } elseif (Test-Path -LiteralPath $_ -PathType Leaf) {
+      Get-Item -LiteralPath $_
+    }
+  } |
+  Sort-Object LastWriteTimeUtc -Descending |
+  Select-Object -First 1
+
+if (-not (Test-Path -LiteralPath $DistIndex) -or $LatestInput.LastWriteTimeUtc -gt (Get-Item -LiteralPath $DistIndex).LastWriteTimeUtc) {
   npm run build
 }
 
@@ -47,11 +71,14 @@ if (-not $Port) {
 $Url = "http://127.0.0.1:$Port/"
 
 if (-not (Test-LocalApp -Url $Url)) {
+  $NodePath = (Get-Command node -ErrorAction Stop).Source
   Start-Process `
-    -FilePath "cmd.exe" `
-    -ArgumentList "/c", "set PORT=$Port&& node server.mjs --prod > `"$LogPath`" 2>&1" `
+    -FilePath $NodePath `
+    -ArgumentList "server.mjs", "--prod", "--port=$Port" `
     -WorkingDirectory $ProjectRoot `
-    -WindowStyle Hidden
+    -WindowStyle Hidden `
+    -RedirectStandardOutput $LogPath `
+    -RedirectStandardError $ErrorLogPath
 
   $ready = $false
   for ($i = 0; $i -lt 20; $i += 1) {
@@ -63,8 +90,12 @@ if (-not (Test-LocalApp -Url $Url)) {
   }
 
   if (-not $ready) {
-    throw "Kindle Memo Cards did not start. See $LogPath"
+    throw "Kindle Flomo Cards did not start. See $LogPath and $ErrorLogPath"
   }
 }
 
-Start-Process $Url
+if (-not $NoOpen) {
+  Start-Process $Url
+}
+
+Write-Host "Kindle Flomo Cards ready at $Url"

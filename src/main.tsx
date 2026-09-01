@@ -3,10 +3,13 @@ import { createRoot } from 'react-dom/client';
 import { toPng } from 'html-to-image';
 import {
   BookOpen,
+  Check,
+  Copy,
   Download,
   FileUp,
   Hash,
   ImageDown,
+  Library,
   Moon,
   RefreshCw,
   Search,
@@ -15,6 +18,7 @@ import {
   Tags,
   Upload,
 } from 'lucide-react';
+import { formatFlomoMemo } from './lib/flomoFormat.js';
 import { mergeMemos, parseKindleClippings } from './lib/kindleParser.js';
 import './styles.css';
 
@@ -37,6 +41,8 @@ type Template = 'quote' | 'comment' | 'memo';
 type Theme = 'light' | 'dark' | 'paper';
 type SizePreset = 'flomo' | 'square' | 'portrait' | 'wide';
 type FilterMode = 'all' | 'recent' | 'untagged';
+type MobileView = 'library' | 'studio';
+type StatusTone = 'neutral' | 'working' | 'success' | 'error';
 
 const STORAGE_KEY = 'kindle-flomo-cards:memos';
 const SETTINGS_KEY = 'kindle-flomo-cards:settings';
@@ -167,7 +173,7 @@ function renderMemoText(text: string) {
 function compactTitle(title: string) {
   return title
     .replace(/（.*?）|\(.*?\)/g, '')
-    .replace(/[—-]+.*$/g, '')
+    .replace(/[\u2014-]+.*$/g, '')
     .trim() || title;
 }
 
@@ -256,8 +262,15 @@ function App() {
   const [template, setTemplate] = useState<Template>(settings.template || 'quote');
   const [theme, setTheme] = useState<Theme>(settings.theme || 'dark');
   const [size, setSize] = useState<SizePreset>(settings.size || 'flomo');
-  const [status, setStatus] = useState('连接 Kindle 后点击同步，或直接导入 My Clippings.txt。');
+  const [status, setStatus] = useState<{ tone: StatusTone; text: string }>({
+    tone: 'neutral',
+    text: '阅读数据只保存在这台电脑。',
+  });
   const [pasteText, setPasteText] = useState('');
+  const [mobileView, setMobileView] = useState<MobileView>('library');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [didCopy, setDidCopy] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -303,37 +316,53 @@ function App() {
   }
 
   function importParsed(parsed: Memo[], importedAt = new Date().toISOString(), source = '文件') {
+    if (parsed.length === 0) {
+      setStatus({ tone: 'error', text: `${source} 中没有识别到 Kindle 摘录，请确认文件内容。` });
+      return;
+    }
     const result = mergeMemos(memos, parsed, importedAt);
     persist(result.memos);
     setFilterMode('recent');
     setActiveTag('');
-    if (result.added > 0) setSelectedId(result.memos[result.memos.length - result.added]?.id || result.memos[0]?.id || '');
-    setStatus(`${source} 已同步：新增 ${result.added} 条，当前共 ${result.memos.length} 条。`);
+    setSelectedId(parsed[0]?.id || result.memos[0]?.id || '');
+    setStatus({
+      tone: 'success',
+      text: `${source} 已完成：新增 ${result.added} 条，更新 ${result.updated} 条，共 ${result.memos.length} 条。`,
+    });
   }
 
   async function syncKindle() {
-    setStatus('正在查找 Kindle 摘录文件...');
+    setIsSyncing(true);
+    setStatus({ tone: 'working', text: '正在查找通过 USB 连接的 Kindle...' });
     try {
       const response = await fetch('/api/kindle-clippings');
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.message || '同步失败');
       importParsed(payload.memos, payload.importedAt, payload.source);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : '没有找到 Kindle，请改用导入文件。');
+      setStatus({ tone: 'error', text: error instanceof Error ? error.message : '没有找到 Kindle，请改用导入文件。' });
+    } finally {
+      setIsSyncing(false);
     }
   }
 
   async function importFile(file: File) {
-    const text = await file.text();
-    importParsed(parseKindleClippings(text), new Date().toISOString(), file.name);
+    try {
+      setStatus({ tone: 'working', text: `正在解析 ${file.name}...` });
+      const text = await file.text();
+      importParsed(parseKindleClippings(text), new Date().toISOString(), file.name);
+    } catch (error) {
+      setStatus({ tone: 'error', text: error instanceof Error ? error.message : '文件读取失败。' });
+    }
   }
 
   function updateMemo(id: string, changes: Partial<Memo>) {
     persist(memos.map((memo) => (memo.id === id ? { ...memo, ...changes } : memo)));
   }
 
-  async function exportCard(memo = selectedMemo) {
+  async function exportCard(memo = selectedMemo, silent = false) {
     if (!cardRef.current || !memo) return;
+    if (!silent) setIsExporting(true);
     const dimensions = getCardDimensions(size, template, memo.quote || memo.comment || '', memo.comment || '');
     const previousTransform = cardRef.current.style.transform;
     cardRef.current.style.transform = 'none';
@@ -350,209 +379,344 @@ function App() {
           height: `${dimensions.height}px`,
         },
       });
+      const link = document.createElement('a');
+      link.download = `${compactTitle(memo.title).slice(0, 24)}-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+      if (!silent) setStatus({ tone: 'success', text: '卡片 PNG 已导出。' });
+    } catch (error) {
+      setStatus({ tone: 'error', text: error instanceof Error ? error.message : '卡片导出失败。' });
+      if (silent) throw error;
     } finally {
       cardRef.current.style.transform = previousTransform;
+      if (!silent) setIsExporting(false);
     }
-
-    const link = document.createElement('a');
-    link.download = `${compactTitle(memo.title).slice(0, 24)}-${Date.now()}.png`;
-    link.href = dataUrl;
-    link.click();
   }
 
   async function exportBatch() {
-    for (const memo of filtered.slice(0, 20)) {
-      setSelectedId(memo.id);
-      await new Promise((resolve) => window.setTimeout(resolve, 180));
-      await exportCard(memo);
+    if (filtered.length === 0 || isExporting) return;
+    const originalId = selectedMemo?.id || '';
+    const batch = filtered.slice(0, 20);
+    setIsExporting(true);
+    setStatus({ tone: 'working', text: `正在导出 ${batch.length} 张卡片...` });
+    try {
+      for (const memo of batch) {
+        setSelectedId(memo.id);
+        await new Promise((resolve) => window.setTimeout(resolve, 180));
+        await exportCard(memo, true);
+      }
+      setStatus({ tone: 'success', text: `已导出 ${batch.length} 张卡片。` });
+    } catch {
+      setStatus({ tone: 'error', text: '批量导出中断，请允许浏览器下载多个文件后重试。' });
+    } finally {
+      setSelectedId(originalId);
+      setIsExporting(false);
     }
-    setStatus(`已导出 ${Math.min(filtered.length, 20)} 张卡片。`);
+  }
+
+  async function copyForFlomo() {
+    if (!selectedMemo) return;
+    const text = formatFlomoMemo(selectedMemo);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
+    setDidCopy(true);
+    setStatus({ tone: 'success', text: '已复制为 flomo memo，可以直接粘贴。' });
+    window.setTimeout(() => setDidCopy(false), 1800);
   }
 
   return (
-    <main className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <BookOpen size={24} />
+    <main className={`appShell mobile-${mobileView}`}>
+      <header className="appHeader">
+        <div className="brandLockup">
+          <span className="brandIcon"><BookOpen size={21} /></span>
           <div>
-            <h1>Kindle Memo</h1>
-            <p>离线摘录卡片工具</p>
+            <h1>Kindle Flomo Cards</h1>
+            <p>本地阅读摘录工作台</p>
           </div>
         </div>
 
-        <button className="primaryAction" onClick={syncKindle}>
-          <RefreshCw size={18} />
-          同步 Kindle
-        </button>
-        <button className="secondaryAction" onClick={() => fileRef.current?.click()}>
-          <FileUp size={18} />
-          导入文件
-        </button>
-        <input
-          ref={fileRef}
-          hidden
-          type="file"
-          accept=".txt,text/plain"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) importFile(file);
-            event.currentTarget.value = '';
-          }}
-        />
-
-        <details className="pasteBox">
-          <summary>粘贴导入</summary>
-          <textarea
-            value={pasteText}
-            onChange={(event) => setPasteText(event.target.value)}
-            placeholder="粘贴 My Clippings.txt 内容"
-          />
-          <button
-            className="secondaryAction"
-            onClick={() => {
-              if (!pasteText.trim()) return;
-              importParsed(parseKindleClippings(pasteText), new Date().toISOString(), '粘贴内容');
-              setPasteText('');
-            }}
-          >
-            <Upload size={17} />
-            解析粘贴内容
+        <div className="headerActions">
+          <button className="actionButton secondary" onClick={syncKindle} disabled={isSyncing}>
+            <RefreshCw className={isSyncing ? 'spin' : ''} size={17} />
+            {isSyncing ? '正在同步' : '同步 Kindle'}
           </button>
-        </details>
-
-        <div className="status">{status}</div>
-
-        <section className="stats">
-          <div><strong>{memos.length}</strong><span>摘录</span></div>
-          <div><strong>{books}</strong><span>书籍</span></div>
-          <div><strong>{tags.length}</strong><span>标签</span></div>
-        </section>
-
-        <nav className="navGroup">
-          <button className={filterMode === 'all' ? 'active' : ''} onClick={() => setFilterMode('all')}>全部</button>
-          <button className={filterMode === 'recent' ? 'active' : ''} onClick={() => setFilterMode('recent')}>最近导入</button>
-          <button className={filterMode === 'untagged' ? 'active' : ''} onClick={() => setFilterMode('untagged')}>未整理</button>
-        </nav>
-
-        <section className="tagPanel">
-          <div className="panelTitle"><Tags size={15} /> 标签</div>
-          <button className={!activeTag ? 'tag active' : 'tag'} onClick={() => setActiveTag('')}>全部标签</button>
-          {tags.map(([tag, count]) => (
-            <button key={tag} className={activeTag === tag ? 'tag active' : 'tag'} onClick={() => setActiveTag(tag)}>
-              <span>#{tag}</span><em>{count}</em>
-            </button>
-          ))}
-        </section>
-      </aside>
-
-      <section className="memoPane">
-        <div className="toolbar">
-          <div className="searchBox">
-            <Search size={18} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索摘录、评论、书名、标签" />
-          </div>
-          <button className="iconText" onClick={exportBatch}><Download size={17} /> 批量导出</button>
-        </div>
-
-        <div className="memoList">
-          {filtered.map((memo) => (
-            <article
-              key={memo.id}
-              className={selectedMemo?.id === memo.id ? 'memoItem selected' : 'memoItem'}
-              onClick={() => setSelectedId(memo.id)}
-            >
-              <div className="memoMeta">
-                <span>{memo.title}</span>
-                <small>{formatLocation(memo)}</small>
-              </div>
-              <p>{memo.quote || memo.comment}</p>
-              {memo.comment && <blockquote>{memo.comment}</blockquote>}
-              <div className="memoFooter">
-                <div className="inlineTags">
-                  {memo.tags.length ? memo.tags.map((tag) => <span key={tag}>#{tag}</span>) : <span>未整理</span>}
-                </div>
-                <button onClick={(event) => { event.stopPropagation(); setSelectedId(memo.id); exportCard(memo); }}>
-                  <ImageDown size={15} /> 生成卡片
-                </button>
-              </div>
-            </article>
-          ))}
-          {filtered.length === 0 && (
-            <div className="empty">
-              <Upload size={28} />
-              <p>还没有匹配的摘录。连接 Kindle 同步，或导入 My Clippings.txt。</p>
+          <button className="actionButton primary" onClick={() => fileRef.current?.click()}>
+            <FileUp size={17} />
+            导入文件
+          </button>
+          <input
+            ref={fileRef}
+            hidden
+            type="file"
+            accept=".txt,text/plain"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) importFile(file);
+              event.currentTarget.value = '';
+            }}
+          />
+          <details className="importMore">
+            <summary>粘贴导入</summary>
+            <div className="importPopover">
+              <label htmlFor="paste-clippings">My Clippings.txt 内容</label>
+              <textarea
+                id="paste-clippings"
+                value={pasteText}
+                onChange={(event) => setPasteText(event.target.value)}
+                placeholder="粘贴 Kindle 摘录文本"
+              />
+              <button
+                className="actionButton primary"
+                disabled={!pasteText.trim()}
+                onClick={() => {
+                  importParsed(parseKindleClippings(pasteText), new Date().toISOString(), '粘贴内容');
+                  setPasteText('');
+                }}
+              >
+                <Upload size={16} />
+                解析内容
+              </button>
             </div>
-          )}
+          </details>
+        </div>
+      </header>
+
+      <section className={`statusStrip ${status.tone}`} aria-live="polite">
+        <div className="statusMessage">
+          {status.tone === 'success' ? <Check size={16} /> : <RefreshCw className={status.tone === 'working' ? 'spin' : ''} size={16} />}
+          <span>{status.text}</span>
+        </div>
+        <div className="libraryStats" aria-label="摘录统计">
+          <span><strong>{memos.length}</strong> 条摘录</span>
+          <span><strong>{books}</strong> 本书</span>
+          <span><strong>{tags.length}</strong> 个标签</span>
         </div>
       </section>
 
-      <aside className="cardPane">
-        <div className="controls">
-          <div className="segmented">
-            {(['quote', 'comment', 'memo'] as Template[]).map((item) => (
-              <button
-                key={item}
-                className={template === item ? 'active' : ''}
-                onClick={() => { setTemplate(item); persistSettings({ template: item }); }}
-              >
-                {item === 'quote' ? '金句' : item === 'comment' ? '评论' : 'Memo'}
-              </button>
-            ))}
-          </div>
-          <div className="segmented">
-            {(['paper', 'light', 'dark'] as Theme[]).map((item) => (
-              <button
-                key={item}
-                className={theme === item ? 'active' : ''}
-                onClick={() => { setTheme(item); persistSettings({ theme: item }); }}
-                title={item}
-              >
-                {item === 'dark' ? <Moon size={15} /> : item === 'light' ? <Sun size={15} /> : <Sparkles size={15} />}
-              </button>
-            ))}
-          </div>
-          <select value={size} onChange={(event) => { const next = event.target.value as SizePreset; setSize(next); persistSettings({ size: next }); }}>
-            {Object.entries(sizePresets).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
-          </select>
-        </div>
-
-        {selectedMemo ? (
-          <>
-            <CardPreview
-              ref={cardRef}
-              memo={selectedMemo}
-              template={template}
-              theme={theme}
-              size={size}
-              memoCount={memos.length}
-              bookCount={books}
-              memos={memos}
-            />
-            <div className="editor">
-              <label>
-                评论
-                <textarea value={selectedMemo.comment} onChange={(event) => updateMemo(selectedMemo.id, { comment: event.target.value })} />
-              </label>
-              <label>
-                标签
-                <input
-                  value={selectedMemo.tags.map((tag) => `#${tag}`).join(' ')}
-                  onChange={(event) => {
-                    const nextTags = Array.from(event.target.value.matchAll(/#([\p{L}\p{N}_\-\u4e00-\u9fa5]+)/gu)).map((match) => match[1]);
-                    updateMemo(selectedMemo.id, { tags: [...new Set(nextTags)] });
-                  }}
-                />
-              </label>
-              <button className="primaryAction" onClick={() => exportCard()}>
-                <ImageDown size={18} />
-                导出当前卡片
-              </button>
+      <div className="workspace">
+        <section className="libraryPane" aria-label="摘录库">
+          <div className="paneHeading">
+            <div>
+              <p>阅读摘录</p>
+              <h2>{filtered.length === memos.length ? `${memos.length} 条内容` : `${filtered.length} 条结果`}</h2>
             </div>
-          </>
-        ) : (
-          <div className="empty previewEmpty"><Hash size={30} /><p>导入摘录后，这里会出现分享卡片预览。</p></div>
-        )}
-      </aside>
+            <button className="quietButton" onClick={exportBatch} disabled={filtered.length === 0 || isExporting}>
+              <Download size={16} />
+              批量导出
+            </button>
+          </div>
+
+          <div className="searchField">
+            <Search size={18} />
+            <input
+              aria-label="搜索摘录"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="搜索摘录、评论、书名或标签"
+            />
+          </div>
+
+          <div className="filterRow" aria-label="摘录筛选">
+            {([
+              ['all', '全部'],
+              ['recent', '最近导入'],
+              ['untagged', '未整理'],
+            ] as [FilterMode, string][]).map(([value, label]) => (
+              <button
+                key={value}
+                aria-pressed={filterMode === value}
+                className={filterMode === value ? 'active' : ''}
+                onClick={() => setFilterMode(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {tags.length > 0 && (
+            <div className="tagScroller" aria-label="按标签筛选">
+              <button className={!activeTag ? 'active' : ''} onClick={() => setActiveTag('')}>
+                <Tags size={14} /> 全部标签
+              </button>
+              {tags.map(([tag, count]) => (
+                <button key={tag} className={activeTag === tag ? 'active' : ''} onClick={() => setActiveTag(tag)}>
+                  #{tag} <span>{count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="memoList">
+            {filtered.map((memo) => (
+              <article key={memo.id} className={selectedMemo?.id === memo.id ? 'memoItem selected' : 'memoItem'}>
+                <button className="memoSelect" onClick={() => setSelectedId(memo.id)}>
+                  <span className="memoMeta">
+                    <strong>{memo.title}</strong>
+                    <small>{formatLocation(memo)}</small>
+                  </span>
+                  <span className="memoQuote">{memo.quote || memo.comment}</span>
+                  {memo.comment && memo.quote && <span className="memoComment">{memo.comment}</span>}
+                  <span className="memoTags">
+                    {memo.tags.length ? memo.tags.map((tag) => <span key={tag}>#{tag}</span>) : <span>未整理</span>}
+                  </span>
+                </button>
+                <button
+                  className="buildButton"
+                  onClick={() => {
+                    setSelectedId(memo.id);
+                    setMobileView('studio');
+                  }}
+                >
+                  制作卡片
+                </button>
+              </article>
+            ))}
+            {filtered.length === 0 && (
+              <div className="emptyState">
+                <span><Library size={24} /></span>
+                <h3>{memos.length ? '没有匹配的摘录' : '从 Kindle 带回第一条摘录'}</h3>
+                <p>{memos.length ? '试试清除搜索词或切换筛选。' : '连接 Kindle 同步，或导入 My Clippings.txt。'}</p>
+                {!memos.length && (
+                  <button className="actionButton primary" onClick={() => fileRef.current?.click()}>
+                    <FileUp size={16} /> 导入文件
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <aside className="studioPane" aria-label="卡片工作台">
+          <div className="studioHeading">
+            <div>
+              <p>卡片工作台</p>
+              <h2>{selectedMemo ? compactTitle(selectedMemo.title) : '等待摘录'}</h2>
+            </div>
+            <span>{sizePresets[size].width} × {getCardDimensions(size, template, selectedMemo?.quote || '', selectedMemo?.comment || '').height}</span>
+          </div>
+
+          <div className="controlDeck">
+            <fieldset>
+              <legend>内容</legend>
+              <div className="segmented">
+                {(['quote', 'comment', 'memo'] as Template[]).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-pressed={template === item}
+                    className={template === item ? 'active' : ''}
+                    onClick={() => { setTemplate(item); persistSettings({ template: item }); }}
+                  >
+                    {item === 'quote' ? '金句' : item === 'comment' ? '评论' : 'Memo'}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>主题</legend>
+              <div className="segmented iconSegmented">
+                {(['paper', 'light', 'dark'] as Theme[]).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-label={item === 'paper' ? '纸张主题' : item === 'light' ? '浅色主题' : '深色主题'}
+                    aria-pressed={theme === item}
+                    className={theme === item ? 'active' : ''}
+                    onClick={() => { setTheme(item); persistSettings({ theme: item }); }}
+                  >
+                    {item === 'dark' ? <Moon size={15} /> : item === 'light' ? <Sun size={15} /> : <Sparkles size={15} />}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <label className="sizeField">
+              <span>尺寸</span>
+              <select value={size} onChange={(event) => { const next = event.target.value as SizePreset; setSize(next); persistSettings({ size: next }); }}>
+                {Object.entries(sizePresets).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {selectedMemo ? (
+            <>
+              <CardPreview
+                ref={cardRef}
+                memo={selectedMemo}
+                template={template}
+                theme={theme}
+                size={size}
+                memoCount={memos.length}
+                bookCount={books}
+                memos={memos}
+              />
+              <section className="editorPanel">
+                <div className="editorHeading">
+                  <h3>整理内容</h3>
+                  <span>自动保存在本机</span>
+                </div>
+                <label>
+                  <span>摘录</span>
+                  <textarea value={selectedMemo.quote} onChange={(event) => updateMemo(selectedMemo.id, { quote: event.target.value })} />
+                </label>
+                <label>
+                  <span>评论</span>
+                  <textarea
+                    value={selectedMemo.comment}
+                    placeholder="写下这句话为什么值得保留"
+                    onChange={(event) => updateMemo(selectedMemo.id, { comment: event.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>标签</span>
+                  <input
+                    value={selectedMemo.tags.map((tag) => `#${tag}`).join(' ')}
+                    placeholder="#写作 #心理学"
+                    onChange={(event) => {
+                      const nextTags = Array.from(event.target.value.matchAll(/#([\p{L}\p{N}_\-\u4e00-\u9fa5]+)/gu)).map((match) => match[1]);
+                      updateMemo(selectedMemo.id, { tags: [...new Set(nextTags)] });
+                    }}
+                  />
+                </label>
+                <div className="studioActions">
+                  <button className="actionButton secondary" onClick={copyForFlomo}>
+                    {didCopy ? <Check size={17} /> : <Copy size={17} />}
+                    {didCopy ? '已复制' : '复制为 flomo'}
+                  </button>
+                  <button className="actionButton primary" onClick={() => exportCard()} disabled={isExporting}>
+                    <ImageDown size={17} />
+                    {isExporting ? '正在导出' : '导出 PNG'}
+                  </button>
+                </div>
+              </section>
+            </>
+          ) : (
+            <div className="emptyState previewEmpty">
+              <span><Hash size={24} /></span>
+              <h3>还没有可预览的内容</h3>
+              <p>导入摘录后，可以在这里编辑并导出分享卡片。</p>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      <nav className="mobileSwitcher" aria-label="移动端工作区切换">
+        <button className={mobileView === 'library' ? 'active' : ''} onClick={() => setMobileView('library')}>
+          <Library size={17} /> 摘录
+        </button>
+        <button className={mobileView === 'studio' ? 'active' : ''} onClick={() => setMobileView('studio')} disabled={!selectedMemo}>
+          <Sparkles size={17} /> 卡片
+        </button>
+      </nav>
     </main>
   );
 }
@@ -569,15 +733,17 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
   ({ memo, template, theme, size, memoCount, bookCount, memos }, ref) => {
     const location = formatLocation(memo);
     const quote = (memo.quote || memo.comment || '').trim();
-    const date = formatCardDate(memo.importedAt);
-    const source = [compactTitle(memo.title), memo.author, location].filter(Boolean).join(' · ');
+    const memoDate = parseMemoDate(memo);
+    const date = formatCardDate(memoDate?.toISOString() || memo.importedAt);
+    const source = [compactTitle(memo.title), memo.author, location].filter(Boolean).join(' / ');
     const quoteScale = size === 'flomo' ? 'fixedText' : getQuoteScale(quote);
     const dimensions = getCardDimensions(size, template, quote, memo.comment || '');
-    const previewScale = Math.min(1, 420 / (size === 'flomo' ? sizePresets.flomo.width : dimensions.width));
+    const availablePreviewWidth = Math.max(280, Math.min(420, window.innerWidth - 48));
+    const previewScale = Math.min(1, availablePreviewWidth / (size === 'flomo' ? sizePresets.flomo.width : dimensions.width));
     const heatmap = buildReadingHeatmap(memos, size === 'flomo' ? 18 : 26);
 
     return (
-      <div className="previewStage">
+      <div className="previewStage" style={{ height: Math.ceil(dimensions.height * previewScale) + 2 }}>
         <div
           ref={ref}
           className={`shareCard ${theme} ${template} ${size} ${quoteScale}`}
@@ -619,8 +785,11 @@ const CardPreview = React.forwardRef<HTMLDivElement, {
 );
 
 function ReadingHeatmap({ heatmap }: ReturnType<typeof buildReadingHeatmap> extends infer T ? { heatmap: T } : never) {
+  const activeDays = heatmap.cells.filter((cell) => cell.count > 0).length;
   return (
-    <div className="readingHeatmap" aria-label="reading activity heatmap">
+    <div className="readingHeatmap" aria-label={`近期开启阅读的天数：${activeDays}`}>
+      <span className="srOnly">近期开启阅读的天数：{activeDays}</span>
+      <div aria-hidden="true">
       <div className="heatmapMonths" aria-hidden="true" style={{ gridTemplateColumns: `repeat(${heatmap.weekCount}, 1fr)` }}>
         {heatmap.months.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}
       </div>
@@ -643,6 +812,7 @@ function ReadingHeatmap({ heatmap }: ReturnType<typeof buildReadingHeatmap> exte
             />
           ))}
         </div>
+      </div>
       </div>
     </div>
   );

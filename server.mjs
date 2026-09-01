@@ -6,10 +6,15 @@ import { parseKindleClippings } from './src/lib/kindleParser.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const port = Number(process.env.PORT || 5173);
+const portArgument = process.argv.find((argument) => argument.startsWith('--port='));
+const port = Number(portArgument?.split('=')[1] || process.env.PORT || 4310);
 const isProduction = process.env.NODE_ENV === 'production' || process.argv.includes('--prod');
 
 app.use(express.json({ limit: '12mb' }));
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, app: 'kindle-flomo-cards' });
+});
 
 async function exists(filePath) {
   try {
@@ -79,14 +84,14 @@ if (isProduction) {
 } else {
   const { createServer } = await import('vite');
   const vite = await createServer({
-    server: { middlewareMode: true },
+    server: { middlewareMode: true, hmr: false },
     appType: 'spa',
   });
   app.use(vite.middlewares);
 }
 
 const server = app.listen(port, '127.0.0.1', () => {
-  console.log(`Kindle Memo Cards running at http://127.0.0.1:${port}`);
+  console.log(`Kindle Flomo Cards running at http://127.0.0.1:${port}`);
 });
 
 server.on('error', (error) => {

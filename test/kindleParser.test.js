@@ -72,3 +72,24 @@ test('merge updates an existing memo instead of appending duplicate drafts', () 
   assert.equal(result.memos[0].comment, '后补评论');
   assert.deepEqual(result.memos[0].tags, ['整理']);
 });
+
+test('merge keeps a standalone note stable when its text is edited on Kindle', () => {
+  const existing = parseKindleClippings(`书（作者）
+- Your Note on Location 44 | Added on Tuesday, June 9, 2026 10:00:00 PM
+
+第一版想法。
+==========`);
+  const incoming = parseKindleClippings(`书（作者）
+- Your Note on Location 44 | Added on Tuesday, June 9, 2026 10:05:00 PM
+
+#整理 第二版完整想法。
+==========`);
+
+  const result = mergeMemos(existing, incoming, '2026-06-24T00:00:00.000Z');
+
+  assert.equal(result.added, 0);
+  assert.equal(result.updated, 1);
+  assert.equal(result.memos.length, 1);
+  assert.equal(result.memos[0].comment, '第二版完整想法。');
+  assert.deepEqual(result.memos[0].tags, ['整理']);
+});
