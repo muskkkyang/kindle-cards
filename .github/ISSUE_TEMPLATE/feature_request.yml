@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a focused improvement to the local-first workflow.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What reading or note workflow is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the result rather than a specific implementation.
+    validations:
+      required: true
+  - type: checkboxes
+    id: local-first
+    attributes:
+      label: Local-first fit
+      options:
+        - label: This can work without uploading private reading data by default.
+          required: true

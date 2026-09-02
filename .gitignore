@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.vite/
+*.log
+.env
+.env.*
+!.env.example
+Desktop.ini
+Thumbs.db
+.DS_Store
