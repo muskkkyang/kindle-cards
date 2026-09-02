@@ -4,6 +4,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing or new release tag that should receive the portable assets
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -23,6 +28,9 @@ jobs:
           node-version: 22.22.2
           cache: npm
 
+      - name: Install locked dependencies
+        run: npm ci
+
       - name: Build portable package
         shell: pwsh
         run: ./scripts/build-portable-win.ps1 -Force
@@ -31,9 +39,10 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
-          gh release view $env:GITHUB_REF_NAME 2>$null
+          gh release view $env:RELEASE_TAG 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $env:GITHUB_REF_NAME --title "Kindle Cards $env:GITHUB_REF_NAME" --generate-notes
+            gh release create $env:RELEASE_TAG --title "Kindle Cards $env:RELEASE_TAG" --generate-notes
           }
-          gh release upload $env:GITHUB_REF_NAME release/kindle-cards-*-windows-x64.zip release/kindle-cards-*-windows-x64.zip.sha256 --clobber
+          gh release upload $env:RELEASE_TAG release/kindle-cards-*-windows-x64.zip release/kindle-cards-*-windows-x64.zip.sha256 --clobber
