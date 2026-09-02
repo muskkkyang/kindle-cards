@@ -2,7 +2,9 @@
   color-scheme: light;
   color: #23221f;
   background: #f2f0eb;
-  font-family: "SF Pro Text", "Segoe UI Variable", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  font-family:
+    "SF Pro Text", "Segoe UI Variable", "Microsoft YaHei", "PingFang SC",
+    system-ui, sans-serif;
   font-synthesis: none;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
@@ -11,11 +13,11 @@
   --surface-muted: #ebe8e1;
   --surface-raised: #ffffff;
   --ink: #23221f;
-  --ink-soft: #6e6a62;
+  --ink-soft: #665f57;
   --line: #d9d5cc;
   --line-strong: #c6c0b5;
-  --accent: #b66a3c;
-  --accent-hover: #9d5933;
+  --accent: #9a4f2b;
+  --accent-hover: #813f22;
   --accent-soft: #f2e1d4;
   --accent-ink: #fffaf6;
   --success: #47745b;
@@ -101,6 +103,47 @@ select:focus-visible {
   background: var(--page);
 }
 
+.fatalState {
+  min-height: 100dvh;
+  padding: 32px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  color: var(--ink-soft);
+  background: var(--page);
+  text-align: center;
+}
+
+.fatalState > span {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+  border-radius: var(--radius);
+}
+
+.fatalState h1,
+.fatalState p {
+  margin: 0;
+}
+
+.fatalState h1 {
+  color: var(--ink);
+  font-size: clamp(24px, 5vw, 36px);
+  letter-spacing: -0.03em;
+}
+
+.fatalState p {
+  max-width: 38ch;
+}
+
+.fatalState .actionButton {
+  margin-top: 8px;
+}
+
 .appHeader {
   position: relative;
   z-index: 5;
@@ -180,7 +223,10 @@ select:focus-visible {
   font-size: 13px;
   font-weight: 650;
   white-space: nowrap;
-  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
 }
 
 .actionButton:active,
@@ -298,6 +344,10 @@ select:focus-visible {
 
 .statusStrip.success .statusMessage {
   color: var(--success);
+}
+
+.statusStrip.working .statusMessage {
+  color: var(--accent);
 }
 
 .statusStrip.error .statusMessage {
@@ -667,7 +717,8 @@ select:focus-visible {
   background: var(--surface-muted);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface-raised) 70%, transparent);
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--surface-raised) 70%, transparent);
 }
 
 .shareCard {
@@ -685,7 +736,11 @@ select:focus-visible {
 
 .shareCard.paper {
   background:
-    radial-gradient(circle at 88% 12%, rgba(199, 174, 108, 0.16), transparent 28%),
+    radial-gradient(
+      circle at 88% 12%,
+      rgba(199, 174, 108, 0.16),
+      transparent 28%
+    ),
     #f5eddd;
   color: #25231e;
   box-shadow: inset 0 0 0 1px rgba(64, 45, 20, 0.1);
@@ -693,14 +748,22 @@ select:focus-visible {
 
 .shareCard.light {
   background:
-    radial-gradient(circle at 10% 10%, rgba(88, 103, 86, 0.09), transparent 24%),
+    radial-gradient(
+      circle at 10% 10%,
+      rgba(88, 103, 86, 0.09),
+      transparent 24%
+    ),
     #f8f7f1;
   color: #20211d;
 }
 
 .shareCard.dark {
   background:
-    radial-gradient(circle at 72% 18%, rgba(226, 216, 169, 0.045), transparent 30%),
+    radial-gradient(
+      circle at 72% 18%,
+      rgba(226, 216, 169, 0.045),
+      transparent 30%
+    ),
     linear-gradient(145deg, #202120 0%, #1a1b1a 100%);
   color: #eee7bd;
 }
@@ -1312,7 +1375,9 @@ select:focus-visible {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 1180px) {

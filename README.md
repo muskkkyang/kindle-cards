@@ -1,103 +1,124 @@
 # Kindle Flomo Cards
 
-把 Kindle 离线摘录整理成 flomo 风格分享卡片的 Windows 本地工具。
+[English](./README.en.md)
 
-## 当前能力
+[![CI](https://github.com/muskkkyang/kindle-flomo-cards/actions/workflows/ci.yml/badge.svg)](https://github.com/muskkkyang/kindle-flomo-cards/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/muskkkyang/kindle-flomo-cards)](https://github.com/muskkkyang/kindle-flomo-cards/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2f6f62.svg)](./LICENSE)
 
-- 自动识别通过 USB 连接的 Kindle，也可手动导入 `My Clippings.txt`。
-- 解析中英文书名、作者、位置、时间、摘录、连续修改的评论和笔记中的 `#标签`。
-- 重复同步时自动更新已修改的笔记，不产生重复草稿。
-- 在本地搜索、筛选、编辑和自动保存摘录，展示阅读活跃度。
-- 提供金句卡、评论卡、阅读 memo 卡，以及多种主题和常用社交媒体尺寸。
-- 一键复制为 flomo memo 格式，可直接粘贴到 flomo。
-- 将当前卡片导出为 PNG，不依赖云端服务。
-- 支持桌面与移动宽度，窄屏可在“摘录”和“卡片”工作区间切换。
+一个本地优先的 Kindle 摘录工作台。它把 `My Clippings.txt` 解析成可搜索、可编辑的阅读 memo，并导出适合 flomo、朋友圈、小红书和公众号的分享卡片。
 
-## 项目状态
+| 摘录库                                            | 卡片工作台                                                   |
+| ------------------------------------------------- | ------------------------------------------------------------ |
+| ![移动端摘录库](./docs/images/mobile-library.png) | ![移动端卡片工作台](./docs/images/mobile-card-workspace.png) |
 
-当前是可在 Windows 本地使用的个人 MVP。核心流程是：
+## 为什么做这个工具
+
+Kindle 摘录适合阅读时快速记录，但后续整理和分享通常很割裂。Kindle Flomo Cards 把流程收敛为一条本地链路：
 
 ```text
-Kindle / My Clippings.txt → 本地解析与整理 → 卡片预览 → 复制到 flomo 或导出 PNG
+Kindle / My Clippings.txt -> 本地解析与整理 -> flomo 文本或 PNG 卡片
 ```
 
-## 使用方式
+不需要账号、云服务或 API 密钥。阅读数据默认只保存在当前浏览器的本地存储中。
 
-1. 在 Kindle Paperwhite 上保持飞行模式阅读，正常划线。
-2. 如需分类和评论，在 Kindle 笔记里写：`#写作 #心理学 这句话适合放进文章开头。`
-3. 用 USB 连接 Kindle 到 Windows 电脑。
-4. 启动本工具后点击“同步 Kindle”。
-5. 选择摘录，调整模板、主题和尺寸，点击“导出当前卡片”。
+## 主要能力
 
-如果没有自动找到 Kindle，可以点击“导入文件”，手动选择 Kindle 里的 `documents/My Clippings.txt`。
+- 自动识别通过 USB 连接的 Kindle，也可导入或粘贴 `My Clippings.txt`。
+- 解析中英文书名、作者、页码、位置、摘录、笔记和 `#标签`。
+- 识别连续修改的 Kindle 笔记，保留内容更完整的版本。
+- 重复同步时更新已有记录，避免生成重复草稿。
+- 本地搜索、筛选、编辑与自动保存。
+- 一键复制为 flomo memo 格式。
+- 导出金句卡、评论卡和阅读 memo 卡。
+- 支持 Flomo 横卡、1:1、3:4 和公众号横图尺寸。
+- 批量导出为单个 ZIP 文件，避免浏览器连续下载提示。
+- 支持系统深浅色、键盘焦点、减少动态效果和窄屏工作区切换。
 
-## 本地开发
+## 快速开始
+
+需要 [Node.js 22.22.2 或更高版本](https://nodejs.org/)。
 
 ```powershell
-npm install
+git clone https://github.com/muskkkyang/kindle-flomo-cards.git
+cd kindle-flomo-cards
+npm ci
 npm run dev
 ```
 
-打开：
+打开 `http://127.0.0.1:4310`。
 
-```text
-http://127.0.0.1:4310
-```
+你也可以先导入仓库中的 `sample-clippings.txt`，不用连接 Kindle 即可体验完整流程。
 
-完整检查：
+## Windows 桌面使用
 
-```powershell
-npm run check
-```
-
-## 桌面启动
-
-Windows 桌面快捷方式会调用项目里的 `launch.ps1`：
-
-- 如果依赖不存在，会先安装依赖。
-- 如果生产文件不存在，会先构建。
-- 如果本地服务未运行，会在后台启动。
-- 默认从 `http://127.0.0.1:4310` 开始寻找可用端口并自动打开。
-- 源码或配置比生产文件更新时，会自动重新构建，避免打开旧版本。
-
-也可以手动运行：
+一键启动：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\launch.ps1
 ```
 
-重新创建桌面快捷方式：
+启动器会检查 Node.js 版本、安装依赖、按需构建，并从 `4310-4319` 中选择可用端口。它使用构建指纹识别旧服务，避免打开过期界面。
+
+创建桌面快捷方式：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
 ```
 
-## 数据说明
+已有同名快捷方式时脚本不会覆盖。确认要更新快捷方式目标后，可添加 `-Force`。
 
-- 摘录和标签保存在浏览器本地存储。
-- 本地服务只读取 USB Kindle 里的 `My Clippings.txt`。
-- “复制为 flomo”只写入本机剪贴板，不会自动向外发送内容。
-- 不上传阅读数据，不需要云端账号或 API 密钥。
+## Kindle 笔记格式
 
-## 支持的卡片
+在 Kindle 笔记里直接写评论和标签：
 
-- 金句卡
-- 评论卡
-- 阅读 memo 卡
+```text
+#写作 #心理学 这句话适合放进文章开头。
+```
 
-默认导出尺寸：
+同步后会得到：
 
-- 朋友圈/通用：1080x1080
-- 小红书：1080x1440
-- 公众号横图：1200x675
+- 摘录：Kindle 划线原文
+- 评论：去除标签后的笔记正文
+- 标签：`写作`、`心理学`
 
-## 主要文件
+## 隐私与安全
 
-| 路径 | 用途 |
-| --- | --- |
-| `src/` | 卡片管理、预览与导出界面 |
-| `server.mjs` | Kindle 文件发现、本地 API 与静态服务 |
-| `launch.ps1` | Windows 一键构建、启动与打开页面 |
-| `create-desktop-shortcut.ps1` | 创建桌面快捷方式 |
+- 页面和本地 API 只监听 `127.0.0.1`。
+- 摘录、评论和标签保存在浏览器本地存储。
+- 服务只读取已连接 Kindle 中的 `My Clippings.txt`。
+- API 不向页面暴露本机完整文件路径。
+- “复制为 flomo”只写入本机剪贴板，不会自动发送到 flomo。
+- 项目不包含分析脚本、遥测、广告或云端上传逻辑。
 
-本仓库保持私有，用于代码与项目资料备份。
+浏览器本地数据并不等于备份。重要摘录仍应保留原始 `My Clippings.txt` 或其他独立备份。
+
+## 开发与质量检查
+
+```powershell
+npm ci
+npm run check
+```
+
+`npm run check` 会依次执行 ESLint、TypeScript、单元与界面测试、生产构建和格式检查。
+
+常用命令：
+
+| 命令                | 用途                             |
+| ------------------- | -------------------------------- |
+| `npm run dev`       | 启动本地开发服务                 |
+| `npm run test`      | 运行解析器、服务、存储与界面测试 |
+| `npm run lint`      | 检查代码规范                     |
+| `npm run typecheck` | 检查 TypeScript 类型             |
+| `npm run build`     | 生成生产文件                     |
+| `npm run format`    | 统一代码与文档格式               |
+
+架构说明见 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
+
+## 参与贡献
+
+问题反馈和改进建议欢迎通过 [GitHub Issues](https://github.com/muskkkyang/kindle-flomo-cards/issues) 提交。开始编码前请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)，安全问题请按 [SECURITY.md](./SECURITY.md) 私下报告。
+
+## 许可证
+
+[MIT](./LICENSE)
