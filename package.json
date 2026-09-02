@@ -37,7 +37,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.556.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -46,7 +46,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.1",
     "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
+    "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^10.9.1",
     "eslint-plugin-react-hooks": "^7.1.1",
