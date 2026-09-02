@@ -1,6 +1,6 @@
 {
   "name": "kindle-cards",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local-first Kindle highlights organizer with memo formatting and share-card export.",
   "private": true,
   "type": "module",
@@ -29,6 +29,7 @@
     "test:unit": "node --test test/*.test.js",
     "test:ui": "vitest run",
     "test:watch": "vitest",
+    "package:portable:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-portable-win.ps1",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run format:check"
   },
   "dependencies": {

@@ -37,6 +37,12 @@ Kindle / My Clippings.txt -> 本地解析与整理 -> 笔记文本或 PNG 卡片
 
 ## 快速开始
 
+### Windows 便携版：无需安装任何开发环境
+
+从 [Releases](https://github.com/muskkkyang/kindle-cards/releases/latest) 下载 `kindle-cards-*-windows-x64.zip`，解压后双击 `Kindle Cards.cmd`。压缩包已包含运行时和全部生产依赖，不需要安装 Node.js、Git 或 npm。
+
+### 从源码运行
+
 需要 [Node.js 22.22.2 或更高版本](https://nodejs.org/)。
 
 ```powershell
@@ -101,6 +107,8 @@ npm run check
 ```
 
 `npm run check` 会依次执行 ESLint、TypeScript、单元与界面测试、生产构建和格式检查。
+
+Windows 便携包可通过 `npm run package:portable:win` 生成；它会校验下载的 Node.js 运行时 SHA-256，并同时输出 ZIP 与 `.sha256` 校验文件。为防止意外覆盖，已有同名输出时脚本会停止；确认覆盖时可直接执行 `./scripts/build-portable-win.ps1 -Force`。
 
 常用命令：
 

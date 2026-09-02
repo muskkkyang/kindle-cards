@@ -27,6 +27,12 @@ No account, cloud service, API key, analytics, or telemetry is required.
 
 ## Quick start
 
+### Portable Windows download: no setup required
+
+Download `kindle-cards-*-windows-x64.zip` from [Releases](https://github.com/muskkkyang/kindle-cards/releases/latest), extract it, then double-click `Kindle Cards.cmd`. The package includes its runtime and production dependencies; Node.js, Git, and npm are not required.
+
+### Run from source
+
 Install [Node.js 22.22.2 or newer](https://nodejs.org/), then run:
 
 ```powershell
@@ -72,6 +78,8 @@ npm run check
 ```
 
 The quality gate runs ESLint, TypeScript, unit and UI tests, the production build, and Prettier verification.
+
+Create the portable Windows package with `npm run package:portable:win`. It verifies the downloaded Node.js runtime with its official SHA-256 checksum and emits both ZIP and `.sha256` files. The script stops when an output already exists; use `./scripts/build-portable-win.ps1 -Force` only when you intend to replace it.
 
 See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md), [CONTRIBUTING.md](./CONTRIBUTING.md), and [SECURITY.md](./SECURITY.md) for project details.
 

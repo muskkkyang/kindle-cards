@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 和 [Semantic Versioning](https://semver.org/)。
 
+## [1.0.1] - 2026-09-02
+
+### Added
+
+- Windows 便携版 ZIP：内置 Node.js 运行时、生产依赖和一键启动器，解压后无需安装 Node.js、Git 或 npm。
+- 便携包 SHA-256 校验文件与运行时许可证说明。
+- 可复现的 Windows 打包脚本，以及后续标签发布时自动上传便携包的 GitHub Actions 工作流。
+
 ## [1.0.0] - 2026-09-02
 
 ### Added

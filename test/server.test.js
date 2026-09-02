@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApiApp } from "../server.mjs";
+
+const packageJson = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8"),
+);
 
 async function listen(app) {
   const server = await new Promise((resolve) => {
@@ -31,7 +36,7 @@ test("health endpoint is private-cache safe and includes build identity", async 
   assert.equal(response.headers.get("x-powered-by"), null);
   assert.equal(payload.ok, true);
   assert.equal(payload.app, "kindle-cards");
-  assert.equal(payload.version, "1.0.0");
+  assert.equal(payload.version, packageJson.version);
   assert.equal(payload.buildId, "test-build");
 });
 
