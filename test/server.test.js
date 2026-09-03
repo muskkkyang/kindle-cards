@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
-import { createApiApp } from "../server.mjs";
+import { createApiApp, readMtpKindleClippings } from "../server.mjs";
 
 const packageJson = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf8"),
@@ -43,6 +45,8 @@ test("health endpoint is private-cache safe and includes build identity", async 
 test("Kindle endpoint returns a bounded public payload without exposing a local path", async (context) => {
   const getClippings = async () => ({
     source: "Kindle / My Clippings.txt",
+    transport: "mtp",
+    revision: "revision-1",
     importedAt: "2026-09-01T00:00:00.000Z",
     memos: [{ id: "memo-1", quote: "摘录" }],
   });
@@ -54,8 +58,63 @@ test("Kindle endpoint returns a bounded public payload without exposing a local 
 
   assert.equal(response.status, 200);
   assert.equal(payload.ok, true);
+  assert.equal(payload.changed, true);
   assert.equal(payload.source, "Kindle / My Clippings.txt");
   assert.equal(JSON.stringify(payload).includes("E:\\"), false);
+});
+
+test("Kindle endpoint omits memos when the content revision has not changed", async (context) => {
+  const getClippings = async () => ({
+    source: "Kindle Paperwhite / My Clippings.txt",
+    transport: "mtp",
+    revision: "same-revision",
+    importedAt: "2026-09-03T00:00:00.000Z",
+    memos: [{ id: "memo-1", quote: "摘录" }],
+  });
+  const { server, baseUrl } = await listen(createApiApp({ getClippings }));
+  context.after(() => close(server));
+
+  const response = await fetch(
+    `${baseUrl}/api/kindle-clippings?revision=same-revision`,
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.changed, false);
+  assert.equal(payload.revision, "same-revision");
+  assert.equal("memos" in payload, false);
+});
+
+test("MTP reader parses a Windows Shell snapshot without exposing its path", async (context) => {
+  const temporaryRoot = await mkdtemp(
+    path.join(tmpdir(), "kindle-cards-server-test-"),
+  );
+  context.after(() => rm(temporaryRoot, { recursive: true, force: true }));
+  const clippingText = await readFile(
+    new URL("../sample-clippings.txt", import.meta.url),
+    "utf8",
+  );
+  const runReader = async (_executable, args) => {
+    const destination = args.at(-1);
+    await writeFile(path.join(destination, "My Clippings.txt"), clippingText);
+    return {
+      stdout: `${JSON.stringify({
+        ok: true,
+        deviceName: "Kindle Paperwhite",
+        fileName: "My Clippings.txt",
+        size: Buffer.byteLength(clippingText),
+      })}\n`,
+      stderr: "",
+    };
+  };
+
+  const payload = await readMtpKindleClippings({ runReader, temporaryRoot });
+
+  assert.equal(payload.transport, "mtp");
+  assert.equal(payload.source, "Kindle Paperwhite / My Clippings.txt");
+  assert.equal(payload.memos.length > 0, true);
+  assert.match(payload.revision, /^[a-f0-9]{64}$/u);
 });
 
 test("unknown API routes return JSON 404 responses", async (context) => {

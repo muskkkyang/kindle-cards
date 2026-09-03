@@ -1,7 +1,11 @@
 import express from "express";
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { parseKindleClippings } from "./src/lib/kindleParser.js";
 
 const currentFile = fileURLToPath(import.meta.url);
@@ -11,6 +15,8 @@ const packageJson = JSON.parse(
 );
 
 export const MAX_CLIPPINGS_BYTES = 25 * 1024 * 1024;
+const execFileAsync = promisify(execFile);
+const mtpReaderPath = path.join(projectRoot, "scripts", "read-kindle-mtp.ps1");
 
 function secureHeaders(_request, response, next) {
   response.set({
@@ -76,19 +82,90 @@ export async function findKindleClippings(
 
 export async function readKindleClippings() {
   const filePath = await findKindleClippings();
-  if (!filePath) return null;
+  if (filePath) {
+    const stats = await fs.stat(filePath);
+    if (!stats.isFile()) throw new Error("Kindle 摘录路径不是普通文件。");
+    if (stats.size > MAX_CLIPPINGS_BYTES)
+      throw new Error("Kindle 摘录文件超过 25 MB，已停止读取。");
 
-  const stats = await fs.stat(filePath);
-  if (!stats.isFile()) throw new Error("Kindle 摘录路径不是普通文件。");
-  if (stats.size > MAX_CLIPPINGS_BYTES)
-    throw new Error("Kindle 摘录文件超过 25 MB，已停止读取。");
+    const text = await fs.readFile(filePath, "utf8");
+    return createClippingsPayload(text, "Kindle / My Clippings.txt", "volume");
+  }
 
-  const text = await fs.readFile(filePath, "utf8");
+  if (process.platform !== "win32") return null;
+  return readMtpKindleClippings();
+}
+
+function createClippingsPayload(text, source, transport) {
+  const revision = createHash("sha256").update(text).digest("hex");
   return {
-    source: "Kindle / My Clippings.txt",
+    source,
+    transport,
+    revision,
     importedAt: new Date().toISOString(),
     memos: parseKindleClippings(text),
   };
+}
+
+export async function readMtpKindleClippings({
+  runReader = execFileAsync,
+  temporaryRoot = os.tmpdir(),
+} = {}) {
+  const snapshotDirectory = await fs.mkdtemp(
+    path.join(temporaryRoot, "kindle-cards-mtp-"),
+  );
+
+  try {
+    const { stdout } = await runReader(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        mtpReaderPath,
+        "-DestinationDirectory",
+        snapshotDirectory,
+      ],
+      { encoding: "utf8", windowsHide: true, maxBuffer: 1024 * 1024 },
+    );
+    const line = stdout
+      .split(/\r?\n/u)
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .at(-1);
+    if (!line) throw new Error("MTP 读取器没有返回结果。");
+
+    const result = JSON.parse(line);
+    if (!result.ok) {
+      if (result.reason === "not_found") return null;
+      throw new Error("无法从 Windows 便携设备读取 Kindle 摘录。");
+    }
+    if (
+      !Number.isSafeInteger(result.size) ||
+      result.size > MAX_CLIPPINGS_BYTES
+    ) {
+      throw new Error("Kindle 摘录文件超过 25 MB，已停止读取。");
+    }
+
+    const fileName = String(result.fileName || "");
+    if (
+      path.basename(fileName) !== fileName ||
+      !/^My Clippings(?:\.txt)?$/iu.test(fileName)
+    ) {
+      throw new Error("MTP 读取器返回了无效的摘录文件名。");
+    }
+    const snapshotPath = path.join(snapshotDirectory, fileName);
+    const text = await fs.readFile(snapshotPath, "utf8");
+    return createClippingsPayload(
+      text,
+      `${result.deviceName || "Kindle"} / My Clippings.txt`,
+      "mtp",
+    );
+  } finally {
+    await fs.rm(snapshotDirectory, { recursive: true, force: true });
+  }
 }
 
 export function createApiApp({
@@ -113,7 +190,7 @@ export function createApiApp({
     });
   });
 
-  app.get("/api/kindle-clippings", async (_request, response) => {
+  app.get("/api/kindle-clippings", async (request, response) => {
     try {
       const payload = await getClippings();
       if (!payload) {
@@ -125,7 +202,22 @@ export function createApiApp({
         return;
       }
 
-      response.json({ ok: true, ...payload });
+      const requestedRevision =
+        typeof request.query.revision === "string"
+          ? request.query.revision.slice(0, 128)
+          : "";
+      if (payload.revision && requestedRevision === payload.revision) {
+        response.json({
+          ok: true,
+          changed: false,
+          revision: payload.revision,
+          source: payload.source,
+          transport: payload.transport,
+        });
+        return;
+      }
+
+      response.json({ ok: true, changed: true, ...payload });
     } catch (error) {
       console.error("Failed to read Kindle clippings", error);
       const message =

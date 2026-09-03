@@ -36,4 +36,5 @@ window.cancelAnimationFrame = (id: number) => window.clearTimeout(id);
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+  vi.unstubAllGlobals();
 });

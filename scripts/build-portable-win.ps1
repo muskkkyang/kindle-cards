@@ -124,7 +124,7 @@ $ExtractRoot = Join-Path ([IO.Path]::GetTempPath()) "kindle-cards-node-$([guid]:
 
 try {
   New-Item -ItemType Directory -Path $StagingRoot -Force | Out-Null
-  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js")) {
+  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js", "scripts/read-kindle-mtp.ps1")) {
     Copy-RequiredFile -RelativePath $File -DestinationRoot $StagingRoot
   }
   Copy-Item -LiteralPath (Join-Path $ProjectRoot "dist") -Destination (Join-Path $StagingRoot "dist") -Recurse -Force

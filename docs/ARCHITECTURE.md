@@ -3,11 +3,11 @@
 Kindle Cards 采用本地优先的单机架构，浏览器界面和本地 Node.js 服务之间只有两个只读 API。
 
 ```text
-USB Kindle
+USB Kindle (drive letter or Windows MTP/WPD)
    |
-   | My Clippings.txt
+   | My Clippings.txt / temporary read-only snapshot
    v
-Local Express API -> Kindle parser -> React workspace -> localStorage
+Local Express API -> content revision -> Kindle parser -> React workspace -> localStorage
                                               |
                                               +-> clipboard text
                                               +-> PNG / ZIP download
@@ -18,6 +18,7 @@ Local Express API -> Kindle parser -> React workspace -> localStorage
 ### Browser application
 
 - `src/App.tsx` 负责主要工作流和状态协调。
+- 页面可见时每 5 秒查询一次 Kindle；携带上次内容指纹，未变化时不重复传输或合并摘录。
 - `src/components/` 负责可独立维护的界面组件与全局错误状态。
 - `src/lib/cardUtils.ts` 负责无副作用的卡片尺寸、日期和阅读热力图计算。
 - `src/lib/storage.ts` 负责本地数据校验、设置校验和持久化失败提示。
@@ -28,7 +29,9 @@ Local Express API -> Kindle parser -> React workspace -> localStorage
 
 - `server.mjs` 只监听 `127.0.0.1`。
 - `/api/health` 提供版本和构建指纹，用于启动器识别旧服务。
-- `/api/kindle-clippings` 查找并读取 Kindle 摘录，不返回本机完整路径。
+- `/api/kindle-clippings` 查找并读取 Kindle 摘录；Windows 下先检查盘符，再检查 MTP/WPD 便携设备。
+- 响应包含内容 SHA-256 指纹；请求携带相同 `revision` 时只返回 `changed: false`，不重复返回摘录。
+- MTP/WPD 文件由 `scripts/read-kindle-mtp.ps1` 通过 Windows Shell 复制到唯一临时目录，读取后立即清理，不返回设备路径。
 - 生产模式提供 Vite 构建后的静态文件，开发模式挂载 Vite 中间件。
 
 ### Windows launcher

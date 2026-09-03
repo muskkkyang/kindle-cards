@@ -2,6 +2,22 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 和 [Semantic Versioning](https://semver.org/)。
 
+## [1.1.0] - 2026-09-03
+
+### Added
+
+- 支持读取没有盘符、以 Windows MTP/WPD 方式连接的 Kindle Paperwhite。
+- 页面打开时自动感知 Kindle 连接和 `My Clippings.txt` 内容变化，并增量同步。
+
+### Changed
+
+- Kindle API 使用内容指纹避免未变化时重复返回和合并全部摘录。
+- 手动同步入口改为“立即同步”，与自动监测状态区分。
+
+### Security
+
+- 将 Express 使用的传递依赖 `qs` 更新到已修复版本。
+
 ## [1.0.1] - 2026-09-02
 
 ### Added

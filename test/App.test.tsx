@@ -23,10 +23,25 @@ const memo: Memo = {
 
 describe("App", () => {
   beforeEach(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: false,
+    });
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: vi.fn() },
     });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ ok: false, message: "Kindle not found" }),
+            { status: 404, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+    );
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify([memo]));
   });
 
@@ -60,5 +75,41 @@ describe("App", () => {
 
     expect(screen.getByRole("alert").textContent).toContain("原始内容未被覆盖");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("{not valid json");
+  });
+
+  test("automatically merges Kindle changes while the page is open", async () => {
+    const incoming: Memo = {
+      ...memo,
+      id: "new-book|author|21|22|new-quote",
+      title: "新书",
+      quote: "刚从 Kindle 同步的摘录。",
+      locationStart: 21,
+      locationEnd: 22,
+    };
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          changed: true,
+          source: "Kindle Paperwhite / My Clippings.txt",
+          transport: "mtp",
+          revision: "new-revision",
+          importedAt: "2026-09-03T07:00:00.000Z",
+          memos: [incoming],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByText(/Kindle Paperwhite.*已自动同步/u),
+    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "2 条内容" })).toBeTruthy();
+    const stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) || "[]",
+    ) as Memo[];
+    expect(stored.some((item) => item.id === incoming.id)).toBe(true);
   });
 });

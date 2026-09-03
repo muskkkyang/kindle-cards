@@ -25,6 +25,8 @@ A local-first workspace for turning Kindle highlights into searchable notes, por
 
 No account, cloud service, API key, analytics, or telemetry is required.
 
+While the page is open, Kindle Cards detects drive-letter and Windows MTP/WPD Kindle connections. It checks for `My Clippings.txt` changes every five seconds and incrementally merges only changed content.
+
 ## Quick start
 
 ### Portable Windows download: no setup required
@@ -65,6 +67,7 @@ The script does not overwrite an existing shortcut unless `-Force` is supplied.
 - The app and API listen on `127.0.0.1` only.
 - Reading data stays in browser-local storage.
 - The server reads only Kindle's `My Clippings.txt` file.
+- Windows MTP/WPD access uses a temporary read-only Shell snapshot that is removed immediately after parsing.
 - The API does not expose the full local device path to the page.
 - Copying note text only writes to the local clipboard and never sends it to an external service.
 

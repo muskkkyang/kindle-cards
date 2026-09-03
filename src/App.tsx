@@ -50,6 +50,25 @@ import type {
 const EXPORT_PIXEL_RATIO = 3;
 const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
 const MAX_BATCH_EXPORT = 50;
+const AUTO_SYNC_INTERVAL_MS = 5_000;
+
+type KindlePayload = {
+  ok?: boolean;
+  changed?: boolean;
+  message?: string;
+  memos?: Memo[];
+  importedAt?: string;
+  source?: string;
+  revision?: string;
+  transport?: "mtp" | "volume";
+};
+
+async function fetchKindleClippings(signal: AbortSignal, revision = "") {
+  const query = revision ? `?revision=${encodeURIComponent(revision)}` : "";
+  const response = await fetch(`/api/kindle-clippings${query}`, { signal });
+  const payload = (await response.json()) as KindlePayload;
+  return { response, payload };
+}
 
 function nextPaint() {
   return new Promise<void>((resolve) => {
@@ -95,6 +114,10 @@ export function App() {
   const fileRef = useRef<HTMLInputElement>(null);
   const pasteDetailsRef = useRef<HTMLDetailsElement>(null);
   const copyTimerRef = useRef<number | null>(null);
+  const memosRef = useRef<Memo[]>(initialData.memos);
+  const syncInFlightRef = useRef(false);
+  const lastKindleRevisionRef = useRef("");
+  const kindleWasConnectedRef = useRef<boolean | null>(null);
 
   const { template, theme, size } = settings;
 
@@ -110,6 +133,113 @@ export function App() {
     },
     [],
   );
+
+  useEffect(() => {
+    let disposed = false;
+    let activeController: AbortController | null = null;
+
+    async function pollKindle() {
+      if (disposed || document.hidden || syncInFlightRef.current) return;
+      syncInFlightRef.current = true;
+      activeController = new AbortController();
+      const timeout = window.setTimeout(
+        () => activeController?.abort(),
+        12_000,
+      );
+
+      try {
+        const { response, payload } = await fetchKindleClippings(
+          activeController.signal,
+          lastKindleRevisionRef.current,
+        );
+        if (disposed) return;
+
+        if (response.status === 404) {
+          if (kindleWasConnectedRef.current !== false) {
+            kindleWasConnectedRef.current = false;
+            setStatus({
+              tone: "neutral",
+              text: "正在等待 Kindle 连接；连接后会自动同步新摘录。",
+            });
+          }
+          return;
+        }
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.message || "自动检测 Kindle 失败。");
+        }
+
+        const connectionChanged = kindleWasConnectedRef.current !== true;
+        kindleWasConnectedRef.current = true;
+        if (payload.revision) lastKindleRevisionRef.current = payload.revision;
+
+        if (payload.changed === false) {
+          if (connectionChanged) {
+            setStatus({
+              tone: "success",
+              text: "Kindle 已连接，正在自动监测新摘录。",
+            });
+          }
+          return;
+        }
+        if (!Array.isArray(payload.memos) || payload.memos.length === 0) {
+          setStatus({
+            tone: "neutral",
+            text: "Kindle 已连接，但 My Clippings.txt 中还没有可同步的摘录。",
+          });
+          return;
+        }
+
+        const importedAt = payload.importedAt || new Date().toISOString();
+        const result = mergeMemos(
+          memosRef.current,
+          payload.memos,
+          importedAt,
+        ) as { memos: Memo[]; added: number; updated: number };
+        memosRef.current = result.memos;
+        setMemos(result.memos);
+        setSelectedId((current) => current || result.memos[0]?.id || "");
+        const saveResult = saveMemos(result.memos);
+        setStatus(
+          saveResult.ok
+            ? {
+                tone: "success",
+                text: `${payload.source || "Kindle"} 已自动同步：新增 ${result.added} 条，更新 ${result.updated} 条，共 ${result.memos.length} 条。`,
+              }
+            : { tone: "error", text: saveResult.message },
+        );
+      } catch (error) {
+        if (
+          !disposed &&
+          !(error instanceof DOMException && error.name === "AbortError") &&
+          kindleWasConnectedRef.current !== false
+        ) {
+          kindleWasConnectedRef.current = false;
+          setStatus({
+            tone: "error",
+            text: "Kindle 自动检测暂时失败，将继续重试。",
+          });
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        activeController = null;
+        syncInFlightRef.current = false;
+      }
+    }
+
+    function pollWhenVisible() {
+      if (!document.hidden) void pollKindle();
+    }
+
+    void pollKindle();
+    const interval = window.setInterval(pollKindle, AUTO_SYNC_INTERVAL_MS);
+    document.addEventListener("visibilitychange", pollWhenVisible);
+    return () => {
+      disposed = true;
+      activeController?.abort();
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", pollWhenVisible);
+    };
+  }, []);
 
   const selectedMemo = useMemo(
     () => memos.find((memo) => memo.id === selectedId) || memos[0],
@@ -154,6 +284,7 @@ export function App() {
   }, [activeTag, filterMode, memos, query, recentCutoff]);
 
   function persist(nextMemos: Memo[]) {
+    memosRef.current = nextMemos;
     setMemos(nextMemos);
     if (!selectedId && nextMemos[0]) setSelectedId(nextMemos[0].id);
     return saveMemos(nextMemos);
@@ -202,25 +333,25 @@ export function App() {
   }
 
   async function syncKindle() {
+    if (syncInFlightRef.current) {
+      setStatus({ tone: "working", text: "正在检测 Kindle，请稍候..." });
+      return;
+    }
+    syncInFlightRef.current = true;
     setIsSyncing(true);
     setStatus({ tone: "working", text: "正在查找通过 USB 连接的 Kindle..." });
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 10_000);
 
     try {
-      const response = await fetch("/api/kindle-clippings", {
-        signal: controller.signal,
-      });
-      const payload = (await response.json()) as {
-        ok?: boolean;
-        message?: string;
-        memos?: Memo[];
-        importedAt?: string;
-        source?: string;
-      };
+      const { response, payload } = await fetchKindleClippings(
+        controller.signal,
+      );
       if (!response.ok || !payload.ok || !Array.isArray(payload.memos)) {
         throw new Error(payload.message || "同步失败。");
       }
+      kindleWasConnectedRef.current = true;
+      if (payload.revision) lastKindleRevisionRef.current = payload.revision;
       importParsed(
         payload.memos,
         payload.importedAt,
@@ -236,6 +367,7 @@ export function App() {
       setStatus({ tone: "error", text: message });
     } finally {
       window.clearTimeout(timeout);
+      syncInFlightRef.current = false;
       setIsSyncing(false);
     }
   }
@@ -469,7 +601,7 @@ export function App() {
               size={17}
               aria-hidden="true"
             />
-            {isSyncing ? "正在同步" : "同步 Kindle"}
+            {isSyncing ? "正在同步" : "立即同步"}
           </button>
           <button
             className="actionButton primary"

@@ -24,7 +24,8 @@ Kindle / My Clippings.txt -> 本地解析与整理 -> 笔记文本或 PNG 卡片
 
 ## 主要能力
 
-- 自动识别通过 USB 连接的 Kindle，也可导入或粘贴 `My Clippings.txt`。
+- 自动识别有盘符或通过 Windows MTP/WPD 连接的 Kindle，也可导入或粘贴 `My Clippings.txt`。
+- 页面打开时持续感知 Kindle 连接和文件变化，只在内容变化后自动增量同步。
 - 解析中英文书名、作者、页码、位置、摘录、笔记和 `#标签`。
 - 识别连续修改的 Kindle 笔记，保留内容更完整的版本。
 - 重复同步时更新已有记录，避免生成重复草稿。
@@ -93,6 +94,7 @@ powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
 - 页面和本地 API 只监听 `127.0.0.1`。
 - 摘录、评论和标签保存在浏览器本地存储。
 - 服务只读取已连接 Kindle 中的 `My Clippings.txt`。
+- Windows MTP/WPD 设备通过系统 Shell 生成临时只读快照；解析完成后立即删除快照。
 - API 不向页面暴露本机完整文件路径。
 - “复制笔记文本”只写入本机剪贴板，不会自动发送到任何外部服务。
 - 项目不包含分析脚本、遥测、广告或云端上传逻辑。
