@@ -2,6 +2,49 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mergeMemos, parseKindleClippings } from "../src/lib/kindleParser.js";
 
+test("local edits survive changed source notes and repeated synchronization", () => {
+  const source = {
+    id: "one",
+    title: "书",
+    author: "作者",
+    quote: "摘录",
+    comment: "旧评论",
+    rawNote: "旧评论",
+    tags: [],
+    locationStart: 1,
+    locationEnd: 2,
+  };
+  const local = {
+    ...source,
+    comment: "我的评论",
+    tags: ["自己整理"],
+    editedFields: ["comment", "tags"],
+    favorite: true,
+  };
+  const incoming = {
+    ...source,
+    comment: "Kindle 新评论",
+    rawNote: "Kindle 新评论",
+    tags: ["来源"],
+  };
+  const first = mergeMemos([local], [incoming]);
+  assert.equal(first.memos[0].comment, "我的评论");
+  assert.deepEqual(first.memos[0].tags, ["自己整理"]);
+  assert.equal(first.memos[0].rawNote, "Kindle 新评论");
+  assert.equal(mergeMemos(first.memos, [incoming]).updated, 0);
+});
+
+test("different highlights on the same page are not collapsed and long shared prefixes stay distinct", () => {
+  const prefix = "长摘录".repeat(100);
+  const parsed = parseKindleClippings(
+    `书（作者）\n- Your Highlight on page 12\n\n${prefix}甲\n==========\n书（作者）\n- Your Highlight on page 12\n\n${prefix}乙\n==========`,
+  );
+  assert.equal(parsed.length, 2);
+  const first = mergeMemos([], parsed);
+  assert.equal(first.memos.length, 2);
+  assert.equal(mergeMemos(first.memos, parsed).added, 0);
+});
+
 test("parses Chinese Kindle highlights and merges the matching note", () => {
   const clippings = `中文书名（作者甲）
 - 您在位置 123-124的标注 | 添加于 2026年6月9日星期二 下午10:00:00

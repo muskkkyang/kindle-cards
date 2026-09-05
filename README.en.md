@@ -1,5 +1,13 @@
 # Kindle Cards
 
+## v1.2.0 screenshot iteration
+
+The Screenshots tab discovers images on mounted Kindle volumes and Windows MTP devices while the page is visible. Import discoveries or upload local PNG/JPEG files (up to 20 MB), crop without modifying originals, assign a book, add captions, and export PNG cards. Windows OCR uses installed system languages and reads the original image; review recognition results before use.
+
+Original screenshots and additive edit revisions are stored in `data/screenshots/` beside the application. Back up the entire `data` folder before upgrading. `KINDLE_CARDS_DATA_DIR` can select another screenshot directory but does not migrate existing assets. Memos continue to use browser localStorage; changing the browser origin or port does not transfer them. Detection polls every five seconds while visible, plus device transfer time; it is not a background watcher after the page closes.
+
+See [V1.x iteration and acceptance notes](docs/V1.x-iterations.md) for verification and hardware limitations. Long captions extend card height to avoid clipping.
+
 [简体中文](./README.md)
 
 [![CI](https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml/badge.svg)](https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml)
@@ -65,7 +73,7 @@ The script does not overwrite an existing shortcut unless `-Force` is supplied.
 ## Privacy
 
 - The app and API listen on `127.0.0.1` only.
-- Reading data stays in browser-local storage.
+- Memos stay in browser-local storage; screenshot originals and edits stay in the application's local data folder.
 - The server reads only Kindle's `My Clippings.txt` file.
 - Windows MTP/WPD access uses a temporary read-only Shell snapshot that is removed immediately after parsing.
 - The API does not expose the full local device path to the page.

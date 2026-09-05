@@ -15,11 +15,12 @@ export type Memo = {
   addedAtRaw: string;
   importedAt?: string;
   favorite?: boolean;
+  editedFields?: string[];
 };
 
 export type Template = "quote" | "comment" | "memo";
-export type Theme = "light" | "dark" | "paper";
-export type SizePreset = "landscape" | "square" | "portrait" | "wide";
+export type Theme = "light" | "dark" | "paper" | "receipt";
+export type SizePreset = "landscape" | "square" | "portrait" | "wide" | "phone";
 export type FilterMode = "all" | "recent" | "untagged";
 export type MobileView = "library" | "studio";
 export type StatusTone = "neutral" | "working" | "success" | "error";

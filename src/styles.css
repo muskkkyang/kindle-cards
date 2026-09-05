@@ -1584,3 +1584,624 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+[hidden] {
+  display: none !important;
+}
+.workspaceTabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid #dcded7;
+  margin: 8px 0 26px;
+}
+.workspaceTabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  padding: 14px 2px;
+  color: #808477;
+  font-size: 15px;
+  cursor: pointer;
+}
+.workspaceTabs button[aria-pressed="true"] {
+  color: #343a2c;
+  border-color: #596348;
+}
+.workspaceTabs span {
+  margin-left: 7px;
+  font-size: 12px;
+}
+.screenshotHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.screenshotHeading h2 {
+  font-size: 28px;
+  letter-spacing: -1px;
+  margin: 5px 0;
+}
+.eyebrow {
+  color: #858878;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+.screenshotNotice {
+  color: #737a6b;
+  font-size: 13px;
+  margin: 18px 0;
+}
+.screenshotNotice.error {
+  color: #a34538;
+}
+.screenshotDiscovery {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #edf0e6;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+.screenshotEmpty {
+  text-align: center;
+  padding: 90px 20px;
+  color: #858b7c;
+}
+.screenshotEmpty h3 {
+  font-size: 22px;
+  font-weight: 500;
+  color: #515948;
+  margin-top: 24px;
+}
+.screenshotEmpty p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.screenshotLayout {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.screenshotLibrary {
+  display: grid;
+  gap: 18px;
+  max-height: 950px;
+  overflow: auto;
+  padding: 2px;
+}
+.screenshotThumb {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.screenshotThumb.selected {
+  border-color: #9ca58c;
+  background: #f1f3ec;
+}
+.screenshotThumb img {
+  width: 100%;
+  height: 152px;
+  object-fit: contain;
+  background: #e9eae3;
+}
+.screenshotThumb span {
+  display: block;
+  font-size: 12px;
+  margin-top: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.screenshotEditor {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 290px;
+  gap: 32px;
+  align-items: start;
+  min-width: 0;
+}
+.screenshotPreview {
+  padding: 28px;
+  background: #e9eae4;
+  border-radius: 10px;
+  min-width: 0;
+}
+.screenshotPreview canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  box-shadow: 0 7px 22px #343b2520;
+}
+.screenshotPreview p {
+  margin: 20px 0 0;
+  text-align: center;
+  color: #8a8d82;
+  font-size: 11px;
+}
+.screenshotControls h3 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0 0 24px;
+}
+.screenshotControls label {
+  display: grid;
+  gap: 9px;
+  font-size: 13px;
+  color: #555e4d;
+  margin: 17px 0;
+}
+.screenshotControls input:not([type="range"]),
+.screenshotControls textarea,
+.screenshotControls select {
+  box-sizing: border-box;
+  width: 100%;
+  background: #fafbf7;
+  color: #303629;
+  border: 1px solid #d8dcd1;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+}
+.screenshotControls textarea {
+  resize: vertical;
+  line-height: 1.7;
+}
+.screenshotControls fieldset {
+  padding: 14px 0 8px;
+  border: 0;
+  border-top: 1px solid #dce0d5;
+}
+.screenshotControls legend {
+  font-size: 13px;
+  padding-right: 12px;
+  color: #667059;
+}
+.screenshotControls .cropControl {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 32px;
+  gap: 12px;
+  align-items: center;
+  margin: 8px 0;
+}
+.cropControl input {
+  width: 100%;
+  accent-color: #6c7b59;
+}
+.cropControl output {
+  text-align: right;
+  font-size: 11px;
+}
+.screenshotControls .quietButton {
+  margin: 12px 12px 0 0;
+}
+.screenshotOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.screenshotOcr {
+  margin: 20px 0;
+  border-top: 1px solid #dce0d5;
+  padding-top: 16px;
+  font-size: 13px;
+}
+.screenshotOcr summary {
+  cursor: pointer;
+  color: #626d55;
+}
+.screenshotOcr textarea {
+  margin-top: 16px;
+}
+.screenshotActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.screenshotOriginal {
+  display: inline-block;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #767e6c;
+}
+.screenshotSaveState {
+  font-size: 12px;
+  color: #858b7c;
+  line-height: 1.7;
+}
+@media (max-width: 1100px) {
+  .screenshotLayout {
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .screenshotEditor {
+    grid-template-columns: minmax(220px, 1fr) 250px;
+    gap: 20px;
+  }
+  .screenshotPreview {
+    padding: 16px;
+  }
+}
+@media (max-width: 800px) {
+  .screenshotLayout {
+    display: block;
+  }
+  .screenshotLibrary {
+    display: flex;
+    overflow-x: auto;
+    margin-bottom: 24px;
+  }
+  .screenshotThumb {
+    flex: 0 0 90px;
+  }
+  .screenshotThumb img {
+    height: 100px;
+  }
+  .screenshotEditor {
+    grid-template-columns: 1fr;
+  }
+  .screenshotPreview {
+    max-width: 460px;
+    width: 100%;
+    box-sizing: border-box;
+    justify-self: center;
+  }
+  .screenshotControls {
+    max-width: 460px;
+    width: 100%;
+    justify-self: center;
+  }
+  .screenshotWorkspace {
+    padding-bottom: 30px;
+  }
+}
+.appShell.view-memos {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+.appShell.view-screenshots {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.workspaceTabs {
+  margin: 0;
+  padding: 0 24px;
+  background: var(--surface);
+  border-color: var(--line);
+}
+.workspaceTabs button {
+  color: var(--ink-soft);
+}
+.workspaceTabs button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.screenshotWorkspace {
+  overflow: auto;
+  min-height: 0;
+  padding: 28px max(24px, calc((100vw - 1400px) / 2));
+}
+.screenshotHeading h2,
+.screenshotControls h3 {
+  color: var(--ink);
+}
+.screenshotControls label,
+.screenshotControls legend,
+.screenshotNotice,
+.screenshotEmpty,
+.eyebrow,
+.screenshotSaveState,
+.screenshotOriginal,
+.screenshotOcr summary {
+  color: var(--ink-soft);
+}
+.screenshotControls input:not([type="range"]),
+.screenshotControls textarea,
+.screenshotControls select {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line);
+}
+.screenshotPreview,
+.screenshotThumb img {
+  background: var(--surface-muted);
+}
+.screenshotDiscovery,
+.screenshotThumb.selected {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.screenshotThumb.selected {
+  border-color: var(--accent);
+}
+@media (max-width: 900px) {
+  .appShell.view-memos {
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  }
+}
+@media (max-width: 800px) {
+  .screenshotWorkspace {
+    padding: 24px 16px;
+  }
+}
+
+/* Reading rows keep content and actions in independent grid tracks. */
+.memoItem {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+.memoSelect {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 20px 18px 10px;
+}
+.memoSelect > *,
+.memoMeta,
+.memoMeta strong {
+  min-width: 0;
+  max-width: 100%;
+}
+.memoMeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+}
+.memoQuote,
+.memoComment {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.buildButton {
+  justify-self: end;
+  margin: 0 18px 16px;
+}
+.memoList {
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+.studioHeading {
+  align-items: flex-start;
+}
+.studioHeading > div {
+  min-width: 0;
+  flex: 1;
+}
+.studioHeading h2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  line-height: 1.45;
+}
+.studioHeading > span {
+  flex: none;
+  white-space: nowrap;
+  font-size: 11px;
+  padding-top: 5px;
+}
+.previewStage {
+  padding: 16px 0;
+}
+.shareCard .cardMain {
+  flex: 1;
+  min-height: 0;
+}
+.shareCard .cardHeader,
+.shareCard .cardMetaRow,
+.shareCard .cardFooter,
+.shareCard .cardRule {
+  flex-shrink: 0;
+}
+.shareCard.phone {
+  padding: 160px 88px 110px;
+}
+.shareCard.phone .cardHeader {
+  min-height: 150px;
+}
+.shareCard.phone .cardMain {
+  justify-content: center;
+  padding: 40px 0 65px;
+}
+.shareCard.phone .quoteText {
+  font-size: 46px;
+  font-weight: 550;
+  line-height: 1.7;
+}
+.shareCard.phone .commentText {
+  font-size: 32px;
+  line-height: 1.7;
+}
+.shareCard.receipt {
+  background: #f8f6ef;
+  color: #31312d;
+  padding: 58px 60px 42px;
+  border-top: 8px dotted var(--surface-muted);
+  border-bottom: 8px dotted var(--surface-muted);
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+.shareCard.receipt::after {
+  background: repeating-linear-gradient(
+    0deg,
+    #635d4c08 0 1px,
+    transparent 1px 4px
+  );
+  mask-image: none;
+  opacity: 0.3;
+}
+.receiptHeader {
+  text-align: center;
+  flex: none;
+  border-bottom: 2px solid #aaa79d;
+  padding-bottom: 30px;
+}
+.receiptHeader > span {
+  font:
+    17px "Courier New",
+    monospace;
+  letter-spacing: 5px;
+}
+.receiptHeader > strong {
+  display: block;
+  font-size: 48px;
+  letter-spacing: -2px;
+  margin: 12px 0;
+}
+.receiptHeader > p {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: 4px;
+  color: #666459;
+}
+.shareCard.receipt .receiptMain {
+  margin: 0;
+  padding: 42px 0;
+  gap: 24px;
+  justify-content: center;
+}
+.shareCard.receipt .quoteText {
+  font-size: 36px;
+  line-height: 1.8;
+  font-weight: 400;
+  white-space: pre-wrap;
+}
+.shareCard.receipt .commentText {
+  font-size: 27px;
+  line-height: 1.75;
+}
+.receiptTags {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 23px;
+}
+.receiptTags span {
+  background: #e8e5dc;
+  padding: 4px 10px;
+}
+.receiptFooter {
+  flex: none;
+}
+.receiptSource {
+  font-size: 20px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  padding-bottom: 22px;
+}
+.receiptRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 13px 0;
+  border-top: 2px dashed #aaa79d;
+  font:
+    22px "Courier New",
+    monospace;
+}
+.receiptRow strong {
+  text-align: right;
+  font-weight: 600;
+}
+.receiptBarcode {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  height: 62px;
+  margin: 28px auto 14px;
+}
+.receiptBarcode i {
+  display: block;
+  background: #35362f;
+  flex-shrink: 0;
+}
+.receiptFooter > p {
+  margin: 0;
+  text-align: center;
+  font:
+    14px "Courier New",
+    monospace;
+  letter-spacing: 3px;
+}
+.shareCard.receipt.phone {
+  padding: 105px 80px 85px;
+}
+.shareCard.receipt.phone .quoteText {
+  font-size: 43px;
+}
+.shareCard.receipt.landscape {
+  padding: 26px 38px 22px;
+}
+.shareCard.receipt.landscape .receiptHeader {
+  padding-bottom: 12px;
+}
+.shareCard.receipt.landscape .receiptHeader > span,
+.shareCard.receipt.landscape .receiptHeader > p {
+  font-size: 10px;
+}
+.shareCard.receipt.landscape .receiptHeader > strong {
+  font-size: 25px;
+  margin: 5px;
+}
+.shareCard.receipt.landscape .receiptMain {
+  padding: 18px 0;
+  gap: 10px;
+}
+.shareCard.receipt.landscape .quoteText {
+  font-size: 23px;
+  line-height: 1.65;
+}
+.shareCard.receipt.landscape .receiptRow {
+  font-size: 12px;
+  padding: 6px 0;
+}
+.shareCard.receipt.landscape .receiptSource {
+  font-size: 12px;
+  padding-bottom: 10px;
+}
+.shareCard.receipt.landscape .receiptBarcode {
+  height: 26px;
+  margin: 12px auto 8px;
+  gap: 2px;
+}
+.shareCard.receipt.landscape .receiptFooter > p {
+  font-size: 9px;
+}
+.shareCard.receipt.wide .receiptHeader > strong {
+  font-size: 32px;
+}
+.shareCard.receipt.wide .receiptHeader {
+  padding-bottom: 15px;
+}
+.shareCard.receipt.wide .receiptMain {
+  padding: 20px 0;
+}
+.shareCard.receipt.wide .receiptRow {
+  font-size: 17px;
+  padding: 7px 0;
+}
+.shareCard.receipt.wide .receiptBarcode {
+  height: 32px;
+  margin: 15px auto 8px;
+}
+@media (max-width: 1100px) {
+  .controlDeck {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sizeField {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 600px) {
+  .memoMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .memoMeta small {
+    font-size: 10px;
+  }
+}

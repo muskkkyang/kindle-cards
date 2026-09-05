@@ -50,6 +50,7 @@ if ($NeedsInstall) {
 $DistIndex = Join-Path $ProjectRoot "dist\index.html"
 $BuildInputs = @(
   (Join-Path $ProjectRoot "src"),
+  (Join-Path $ProjectRoot "scripts"),
   (Join-Path $ProjectRoot "index.html"),
   (Join-Path $ProjectRoot "package.json"),
   (Join-Path $ProjectRoot "package-lock.json"),

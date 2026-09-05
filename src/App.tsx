@@ -12,6 +12,7 @@ import {
   Library,
   Moon,
   RefreshCw,
+  ReceiptText,
   Search,
   Sparkles,
   Sun,
@@ -19,6 +20,7 @@ import {
   Upload,
 } from "lucide-react";
 import { CardPreview } from "./components/CardPreview";
+import { ScreenshotWorkspace } from "./components/ScreenshotWorkspace";
 import {
   compactTitle,
   formatLocation,
@@ -91,6 +93,10 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function App() {
+  const [workspaceView, setWorkspaceView] = useState<"memos" | "screenshots">(
+    "memos",
+  );
+  const [screenshotCount, setScreenshotCount] = useState(0);
   const initialData = useMemo(() => loadMemos(), []);
   const [memos, setMemos] = useState<Memo[]>(initialData.memos);
   const [selectedId, setSelectedId] = useState(
@@ -139,7 +145,13 @@ export function App() {
     let activeController: AbortController | null = null;
 
     async function pollKindle() {
-      if (disposed || document.hidden || syncInFlightRef.current) return;
+      if (
+        disposed ||
+        document.hidden ||
+        syncInFlightRef.current ||
+        initialData.warning
+      )
+        return;
       syncInFlightRef.current = true;
       activeController = new AbortController();
       const timeout = window.setTimeout(
@@ -170,7 +182,6 @@ export function App() {
 
         const connectionChanged = kindleWasConnectedRef.current !== true;
         kindleWasConnectedRef.current = true;
-        if (payload.revision) lastKindleRevisionRef.current = payload.revision;
 
         if (payload.changed === false) {
           if (connectionChanged) {
@@ -199,6 +210,8 @@ export function App() {
         setMemos(result.memos);
         setSelectedId((current) => current || result.memos[0]?.id || "");
         const saveResult = saveMemos(result.memos);
+        if (saveResult.ok && payload.revision)
+          lastKindleRevisionRef.current = payload.revision;
         setStatus(
           saveResult.ok
             ? {
@@ -208,15 +221,14 @@ export function App() {
             : { tone: "error", text: saveResult.message },
         );
       } catch (error) {
-        if (
-          !disposed &&
-          !(error instanceof DOMException && error.name === "AbortError") &&
-          kindleWasConnectedRef.current !== false
-        ) {
+        if (!disposed && kindleWasConnectedRef.current !== false) {
           kindleWasConnectedRef.current = false;
           setStatus({
             tone: "error",
-            text: "Kindle 自动检测暂时失败，将继续重试。",
+            text:
+              error instanceof DOMException && error.name === "AbortError"
+                ? "Kindle 自动检测超时，将继续重试；原有摘录已保留。"
+                : "Kindle 自动检测暂时失败，将继续重试。",
           });
         }
       } finally {
@@ -302,6 +314,10 @@ export function App() {
     importedAt = new Date().toISOString(),
     source = "文件",
   ) {
+    if (initialData.warning) {
+      setStatus({ tone: "error", text: initialData.warning });
+      return false;
+    }
     if (parsed.length === 0) {
       setStatus({
         tone: "error",
@@ -310,7 +326,7 @@ export function App() {
       return;
     }
 
-    const result = mergeMemos(memos, parsed, importedAt) as {
+    const result = mergeMemos(memosRef.current, parsed, importedAt) as {
       memos: Memo[];
       added: number;
       updated: number;
@@ -330,6 +346,7 @@ export function App() {
           }
         : { tone: "error", text: saveResult.message },
     );
+    return saveResult.ok;
   }
 
   async function syncKindle() {
@@ -351,12 +368,13 @@ export function App() {
         throw new Error(payload.message || "同步失败。");
       }
       kindleWasConnectedRef.current = true;
-      if (payload.revision) lastKindleRevisionRef.current = payload.revision;
-      importParsed(
+      const saved = importParsed(
         payload.memos,
         payload.importedAt,
         payload.source || "Kindle",
       );
+      if (saved && payload.revision)
+        lastKindleRevisionRef.current = payload.revision;
     } catch (error) {
       const message =
         error instanceof DOMException && error.name === "AbortError"
@@ -410,7 +428,20 @@ export function App() {
 
   function updateMemo(id: string, changes: Partial<Memo>) {
     const nextMemos = memos.map((memo) =>
-      memo.id === id ? { ...memo, ...changes } : memo,
+      memo.id === id
+        ? {
+            ...memo,
+            ...changes,
+            editedFields: [
+              ...new Set([
+                ...(memo.editedFields || []),
+                ...Object.keys(changes).filter((key) =>
+                  ["quote", "comment", "tags"].includes(key),
+                ),
+              ]),
+            ],
+          }
+        : memo,
     );
     const result = persist(nextMemos);
     if (!result.ok) setStatus({ tone: "error", text: result.message });
@@ -427,6 +458,10 @@ export function App() {
   async function captureCard(memo: Memo) {
     const card = cardRef.current;
     if (!card) throw new Error("卡片预览尚未准备好。");
+    if (card.dataset.overflow === "true")
+      throw new Error(
+        "这段内容超出当前卡片可读容量，请选择更长的尺寸或分段制作。",
+      );
 
     const dimensions = getCardDimensions(
       size,
@@ -441,7 +476,7 @@ export function App() {
       const { toBlob } = await import("html-to-image");
       const blob = await toBlob(card, {
         cacheBust: true,
-        pixelRatio: EXPORT_PIXEL_RATIO,
+        pixelRatio: size === "phone" ? 1 : EXPORT_PIXEL_RATIO,
         width: dimensions.width,
         height: dimensions.height,
         style: {
@@ -576,7 +611,7 @@ export function App() {
 
   return (
     <main
-      className={`appShell mobile-${mobileView}`}
+      className={`appShell view-${workspaceView} mobile-${mobileView}`}
       aria-busy={isSyncing || isExporting}
     >
       <header className="appHeader">
@@ -590,7 +625,7 @@ export function App() {
           </div>
         </div>
 
-        <div className="headerActions">
+        <div className="headerActions" hidden={workspaceView !== "memos"}>
           <button
             className="actionButton secondary"
             onClick={syncKindle}
@@ -656,6 +691,7 @@ export function App() {
 
       <section
         className={`statusStrip ${status.tone}`}
+        hidden={workspaceView !== "memos"}
         role={statusRole}
         aria-live="polite"
         aria-atomic="true"
@@ -681,7 +717,26 @@ export function App() {
         </div>
       </section>
 
-      <div className="workspace">
+      <nav className="workspaceTabs" aria-label="阅读资料类型">
+        <button
+          aria-pressed={workspaceView === "memos"}
+          onClick={() => setWorkspaceView("memos")}
+        >
+          摘录 <span>{memos.length}</span>
+        </button>
+        <button
+          aria-pressed={workspaceView === "screenshots"}
+          onClick={() => setWorkspaceView("screenshots")}
+        >
+          截图 <span>{screenshotCount}</span>
+        </button>
+      </nav>
+      <ScreenshotWorkspace
+        active={workspaceView === "screenshots"}
+        books={[...new Set(memos.map((memo) => memo.title))]}
+        onCount={setScreenshotCount}
+      />
+      <div className="workspace" hidden={workspaceView !== "memos"}>
         <section className="libraryPane" aria-label="摘录库">
           <div className="paneHeading">
             <div>
@@ -867,30 +922,36 @@ export function App() {
             <fieldset>
               <legend>主题</legend>
               <div className="segmented iconSegmented">
-                {(["paper", "light", "dark"] as Theme[]).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    aria-label={
-                      item === "paper"
-                        ? "纸张主题"
-                        : item === "light"
-                          ? "浅色主题"
-                          : "深色主题"
-                    }
-                    aria-pressed={theme === item}
-                    className={theme === item ? "active" : ""}
-                    onClick={() => changeSetting("theme", item)}
-                  >
-                    {item === "dark" ? (
-                      <Moon size={15} aria-hidden="true" />
-                    ) : item === "light" ? (
-                      <Sun size={15} aria-hidden="true" />
-                    ) : (
-                      <Sparkles size={15} aria-hidden="true" />
-                    )}
-                  </button>
-                ))}
+                {(["paper", "light", "dark", "receipt"] as Theme[]).map(
+                  (item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      aria-label={
+                        item === "paper"
+                          ? "纸张主题"
+                          : item === "light"
+                            ? "浅色主题"
+                            : item === "receipt"
+                              ? "小票主题"
+                              : "深色主题"
+                      }
+                      aria-pressed={theme === item}
+                      className={theme === item ? "active" : ""}
+                      onClick={() => changeSetting("theme", item)}
+                    >
+                      {item === "receipt" ? (
+                        <ReceiptText size={15} aria-hidden="true" />
+                      ) : item === "dark" ? (
+                        <Moon size={15} aria-hidden="true" />
+                      ) : item === "light" ? (
+                        <Sun size={15} aria-hidden="true" />
+                      ) : (
+                        <Sparkles size={15} aria-hidden="true" />
+                      )}
+                    </button>
+                  ),
+                )}
               </div>
             </fieldset>
             <label className="sizeField">
@@ -1001,7 +1062,11 @@ export function App() {
         </aside>
       </div>
 
-      <nav className="mobileSwitcher" aria-label="移动端工作区切换">
+      <nav
+        className="mobileSwitcher"
+        aria-label="移动端工作区切换"
+        hidden={workspaceView !== "memos"}
+      >
         <button
           className={mobileView === "library" ? "active" : ""}
           onClick={() => setMobileView("library")}

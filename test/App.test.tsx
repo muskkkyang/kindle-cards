@@ -86,19 +86,22 @@ describe("App", () => {
       locationStart: 21,
       locationEnd: 22,
     };
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          ok: true,
-          changed: true,
-          source: "Kindle Paperwhite / My Clippings.txt",
-          transport: "mtp",
-          revision: "new-revision",
-          importedAt: "2026-09-03T07:00:00.000Z",
-          memos: [incoming],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+    vi.mocked(fetch).mockImplementation(
+      async (url) =>
+        new Response(
+          String(url).startsWith("/api/screenshots")
+            ? JSON.stringify({ ok: true, items: [], connected: false })
+            : JSON.stringify({
+                ok: true,
+                changed: true,
+                source: "Kindle Paperwhite / My Clippings.txt",
+                transport: "mtp",
+                revision: "new-revision",
+                importedAt: "2026-09-03T07:00:00.000Z",
+                memos: [incoming],
+              }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     );
 
     render(<App />);

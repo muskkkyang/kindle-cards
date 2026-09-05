@@ -10,3 +10,7 @@ release/
 Desktop.ini
 Thumbs.db
 .DS_Store
+data/
+.playwright-cli/
+output/
+Kindle Cards 后续开发项目计划书.md

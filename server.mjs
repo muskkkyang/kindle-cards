@@ -7,6 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { parseKindleClippings } from "./src/lib/kindleParser.js";
+import { createScreenshotStore } from "./src/lib/screenshotStore.mjs";
+import { screenshotRouter } from "./src/lib/screenshotApi.mjs";
 
 const currentFile = fileURLToPath(import.meta.url);
 const projectRoot = path.dirname(currentFile);
@@ -128,7 +130,12 @@ export async function readMtpKindleClippings({
         "-DestinationDirectory",
         snapshotDirectory,
       ],
-      { encoding: "utf8", windowsHide: true, maxBuffer: 1024 * 1024 },
+      {
+        encoding: "utf8",
+        windowsHide: true,
+        maxBuffer: 1024 * 1024,
+        timeout: 15_000,
+      },
     );
     const line = stdout
       .split(/\r?\n/u)
@@ -157,6 +164,9 @@ export async function readMtpKindleClippings({
       throw new Error("MTP 读取器返回了无效的摘录文件名。");
     }
     const snapshotPath = path.join(snapshotDirectory, fileName);
+    const actual = await fs.stat(snapshotPath);
+    if (!actual.isFile() || actual.size > MAX_CLIPPINGS_BYTES)
+      throw new Error("Kindle 摘录文件超过 25 MB，已停止读取。");
     const text = await fs.readFile(snapshotPath, "utf8");
     return createClippingsPayload(
       text,
@@ -171,6 +181,9 @@ export async function readMtpKindleClippings({
 export function createApiApp({
   getClippings = readKindleClippings,
   buildId = "dev",
+  screenshotDirectory = process.env.KINDLE_CARDS_DATA_DIR ||
+    path.join(projectRoot, "data", "screenshots"),
+  screenshotOptions = {},
 } = {}) {
   const app = express();
   app.disable("x-powered-by");
@@ -229,6 +242,14 @@ export function createApiApp({
         .json({ ok: false, message });
     }
   });
+
+  app.use(
+    "/api/screenshots",
+    screenshotRouter(
+      createScreenshotStore(path.resolve(screenshotDirectory)),
+      screenshotOptions,
+    ),
+  );
 
   app.use("/api", (_request, response) => {
     response.status(404).json({ ok: false, message: "未找到该本地 API。" });

@@ -71,6 +71,7 @@ export function normalizeMemo(value: unknown): Memo | null {
     importedAt:
       typeof value.importedAt === "string" ? value.importedAt : undefined,
     favorite: Boolean(value.favorite),
+    editedFields: normalizeTags(value.editedFields),
   };
 }
 
@@ -135,6 +136,13 @@ export function loadMemos() {
 }
 
 export function saveMemos(memos: Memo[]): SaveResult {
+  if (parseStoredMemos(readStorage(STORAGE_KEY)).warning) {
+    return {
+      ok: false,
+      message:
+        "原始本地数据存在异常，已停止写入以保留原始内容。请先备份并修复数据。",
+    };
+  }
   if (memos.length > MAX_STORED_MEMOS) {
     return {
       ok: false,
@@ -149,7 +157,12 @@ function isTemplate(value: unknown): value is Template {
 }
 
 function isTheme(value: unknown): value is Theme {
-  return value === "paper" || value === "light" || value === "dark";
+  return (
+    value === "paper" ||
+    value === "light" ||
+    value === "dark" ||
+    value === "receipt"
+  );
 }
 
 function isSize(value: unknown): value is SizePreset {
@@ -157,7 +170,8 @@ function isSize(value: unknown): value is SizePreset {
     value === "landscape" ||
     value === "square" ||
     value === "portrait" ||
-    value === "wide"
+    value === "wide" ||
+    value === "phone"
   );
 }
 

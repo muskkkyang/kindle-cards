@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) "release"),
   [string]$NodeVersion = "22.22.2",
   [string]$NodeArchivePath,
@@ -124,7 +124,7 @@ $ExtractRoot = Join-Path ([IO.Path]::GetTempPath()) "kindle-cards-node-$([guid]:
 
 try {
   New-Item -ItemType Directory -Path $StagingRoot -Force | Out-Null
-  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js", "scripts/read-kindle-mtp.ps1")) {
+  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js", "scripts/read-kindle-mtp.ps1", "src/lib/screenshotStore.mjs", "src/lib/kindleScreenshots.mjs", "src/lib/screenshotApi.mjs", "scripts/scan-kindle-screenshots.ps1", "scripts/ocr-screenshot.ps1")) {
     Copy-RequiredFile -RelativePath $File -DestinationRoot $StagingRoot
   }
   Copy-Item -LiteralPath (Join-Path $ProjectRoot "dist") -Destination (Join-Path $StagingRoot "dist") -Recurse -Force
@@ -149,6 +149,8 @@ try {
 
   @'
 import { createServer } from "node:net";
+import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { spawn, execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -156,11 +158,13 @@ import path from "node:path";
 const appRoot = path.dirname(fileURLToPath(import.meta.url));
 const nodePath = path.join(appRoot, "runtime", "node.exe");
 const host = "127.0.0.1";
+const packageInfo = JSON.parse(await readFile(path.join(appRoot, "package.json"), "utf8"));
+const buildId = `portable-${packageInfo.version}-${createHash("sha256").update(appRoot).digest("hex").slice(0,12)}`;
 
 function checkHealth(port) {
   return fetch(`http://${host}:${port}/api/health`)
     .then((response) => response.json())
-    .then((payload) => payload.ok === true && payload.app === "kindle-cards")
+    .then((payload) => payload.ok === true && payload.app === "kindle-cards" && payload.buildId === buildId)
     .catch(() => false);
 }
 
@@ -186,7 +190,7 @@ for (let port = 4310; port <= 4319; port += 1) {
   }
 
   if (!(await findFreePort(port))) continue;
-  const server = spawn(nodePath, ["server.mjs", "--prod", `--port=${port}`, "--build-id=portable"], {
+  const server = spawn(nodePath, ["server.mjs", "--prod", `--port=${port}`, `--build-id=${buildId}`], {
     cwd: appRoot,
     detached: true,
     stdio: "ignore",
@@ -225,7 +229,7 @@ Kindle Cards for Windows
 3. Your browser will open automatically at a local address.
 
 This portable package includes its own Node.js runtime. You do not need to install Node.js, Git, or npm.
-All reading data remains in the browser storage on this computer.
+Memos remain in browser storage. Original screenshots and edit revisions are saved in data/screenshots next to the app. Back up this folder before upgrading.
 '@ | Set-Content -LiteralPath (Join-Path $StagingRoot "README-START-HERE.txt") -Encoding utf8
 
   @'

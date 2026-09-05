@@ -8,6 +8,7 @@ export const sizePresets: Record<
   square: { label: "朋友圈 1:1", width: 1080, height: 1080 },
   portrait: { label: "小红书 3:4", width: 1080, height: 1440 },
   wide: { label: "公众号横图", width: 1200, height: 675 },
+  phone: { label: "手机全屏 9:16", width: 1080, height: 1920 },
 };
 
 function countContentLines(text: string, charsPerLine: number) {
@@ -31,6 +32,7 @@ export function getCardDimensions(
   comment: string,
 ) {
   const preset = sizePresets[size];
+  if (size === "phone") return { width: preset.width, height: preset.height };
 
   if (size !== "landscape") {
     const quoteLines = countContentLines(quote, size === "wide" ? 42 : 26);

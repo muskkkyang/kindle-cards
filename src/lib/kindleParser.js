@@ -57,9 +57,9 @@ function makeFingerprint(parts) {
   return [
     parts.title,
     parts.author,
-    parts.locationStart || "",
-    parts.locationEnd || "",
-    normalizeWhitespace(parts.quote || parts.comment).slice(0, 180),
+    parts.locationStart ?? "",
+    parts.locationEnd ?? "",
+    normalizeWhitespace(parts.quote || parts.comment),
   ].join("|");
 }
 
@@ -75,6 +75,7 @@ function makeMergeAnchor(memo) {
     memo.author,
     memo.type || (memo.quote ? "highlight" : "note"),
     position,
+    memo.quote ? normalizeWhitespace(memo.quote) : "",
   ].join("|");
 }
 
@@ -224,6 +225,19 @@ export function mergeMemos(
         favorite: current.favorite || false,
         importedAt: current.importedAt,
       };
+      // Explicit local edits win; keep the latest raw Kindle note alongside them.
+      for (const field of current.editedFields || []) {
+        if (["quote", "comment", "tags"].includes(field))
+          next[field] = current[field];
+      }
+      if (
+        current.rawNote !== undefined &&
+        !current.editedFields?.includes("comment")
+      ) {
+        const previousSource = extractTagsAndComment(current.rawNote);
+        if (current.comment !== previousSource.comment)
+          next.comment = current.comment;
+      }
       const changed = [
         "title",
         "author",
@@ -234,6 +248,7 @@ export function mergeMemos(
         "locationEnd",
         "page",
         "addedAtRaw",
+        "rawNote",
       ].some(
         (key) => JSON.stringify(current[key]) !== JSON.stringify(next[key]),
       );
@@ -245,12 +260,13 @@ export function mergeMemos(
       }
       continue;
     }
-    byId.set(memo.id, {
+    const inserted = {
       ...memo,
       importedAt,
       favorite: false,
-    });
-    byAnchor.set(makeMergeAnchor(memo), memo);
+    };
+    byId.set(memo.id, inserted);
+    byAnchor.set(makeMergeAnchor(memo), inserted);
     added += 1;
   }
 

@@ -6,7 +6,14 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "coverage/**", "node_modules/**"],
+    ignores: [
+      "dist/**",
+      "coverage/**",
+      "node_modules/**",
+      "release/**",
+      ".vite/**",
+      "data/**",
+    ],
   },
   {
     files: ["**/*.{js,mjs,ts,tsx}"],
@@ -47,6 +54,7 @@ export default tseslint.config(
   {
     files: [
       "server.mjs",
+      "src/lib/*.mjs",
       "vite.config.ts",
       "vitest.config.ts",
       "eslint.config.js",

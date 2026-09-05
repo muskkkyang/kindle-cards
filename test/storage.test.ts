@@ -1,7 +1,17 @@
 import { describe, expect, test } from "vitest";
-import { normalizeTags, parseStoredMemos } from "../src/lib/storage";
+import {
+  normalizeTags,
+  parseStoredMemos,
+  saveMemos,
+  STORAGE_KEY,
+} from "../src/lib/storage";
 
 describe("storage validation", () => {
+  test("a later synchronization cannot replace malformed source storage", () => {
+    window.localStorage.setItem(STORAGE_KEY, "{damaged");
+    expect(saveMemos([]).ok).toBe(false);
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("{damaged");
+  });
   test("keeps valid memos and skips malformed records", () => {
     const result = parseStoredMemos(
       JSON.stringify([
