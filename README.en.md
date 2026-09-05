@@ -1,45 +1,69 @@
-# Kindle Cards
+<div align="center">
+  <img src="./assets/kindle-cards-icon.png" width="88" alt="Kindle Cards icon">
+  <h1>Kindle Cards</h1>
+  <p><strong>Turn Kindle highlights into reading material you can organize, find, and share.</strong></p>
+  <p>Local first · No account · Portable on Windows</p>
+  <p>
+    <a href="https://github.com/muskkkyang/kindle-cards/releases/latest">Download for Windows</a>
+    · <a href="./CHANGELOG.md">Changelog</a>
+    · <a href="./README.md">简体中文</a>
+  </p>
+  <p>
+    <a href="https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml"><img src="https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/muskkkyang/kindle-cards/releases/latest"><img src="https://img.shields.io/github/v/release/muskkkyang/kindle-cards" alt="Release"></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-8a5a44.svg" alt="MIT License"></a>
+  </p>
+</div>
 
-## v1.2.0 screenshot iteration
+![Kindle Cards desktop workspace with the library on the left and live card preview on the right](./docs/images/desktop-workspace.png)
 
-The Screenshots tab discovers images on mounted Kindle volumes and Windows MTP devices while the page is visible. Import discoveries or upload local PNG/JPEG files (up to 20 MB), crop without modifying originals, assign a book, add captions, and export PNG cards. Windows OCR uses installed system languages and reads the original image; review recognition results before use.
+Kindle Cards brings Kindle highlights, notes, and screenshots into one focused local workflow. Connect a device or import a file, search and refine the material, then export portable text, polished PNG cards, or a batch ZIP.
 
-Original screenshots and additive edit revisions are stored in `data/screenshots/` beside the application. Back up the entire `data` folder before upgrading. `KINDLE_CARDS_DATA_DIR` can select another screenshot directory but does not migrate existing assets. Memos continue to use browser localStorage; changing the browser origin or port does not transfer them. Detection polls every five seconds while visible, plus device transfer time; it is not a background watcher after the page closes.
+> Your reading data stays on your computer. Kindle Cards requires no account or cloud service and includes no analytics, ads, or automatic uploads.
 
-See [V1.x iteration and acceptance notes](docs/V1.x-iterations.md) for verification and hardware limitations. Long captions extend card height to avoid clipping.
+## From highlight to card
 
-[简体中文](./README.md)
+| 01 · Bring it back                                                                                   | 02 · Make it yours                                                                                         | 03 · Export and share                                                                   |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Find a drive-letter or Windows MTP/WPD Kindle automatically, or import and paste `My Clippings.txt`. | Search titles and text, edit comments and tags, and reconcile repeated syncs without losing local changes. | Copy portable note text or export quote, comment, and memo cards as PNG or a batch ZIP. |
 
-[![CI](https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml/badge.svg)](https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/muskkkyang/kindle-cards)](https://github.com/muskkkyang/kindle-cards/releases/latest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-2f6f62.svg)](./LICENSE)
+While the page is visible, Kindle Cards checks the device and content revision every five seconds. It performs an incremental merge only when `My Clippings.txt` has changed.
 
-A local-first workspace for turning Kindle highlights into searchable notes, portable text, and shareable image cards.
+## Built for what happens after reading
 
-| Library                                                        | Card workspace                                                    |
-| -------------------------------------------------------------- | ----------------------------------------------------------------- |
-| ![Mobile highlights library](./docs/images/mobile-library.png) | ![Mobile card workspace](./docs/images/mobile-card-workspace.png) |
+| Reading library                                                                              | Card studio                                                   |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Parse Chinese and English titles, authors, pages, locations, highlights, notes, and hashtags | Quote, comment, and memo content modes                        |
+| Reconcile edited Kindle notes and keep the more complete version                             | Paper, light, dark, and receipt themes                        |
+| Search locally, filter by tags, edit, and autosave                                           | Reading landscape, 1:1, 3:4, wide, and full-screen 9:16 sizes |
+| Deduplicate screenshots by content and retain edit history                                   | Single PNG and batch ZIP export                               |
 
-## What it does
+### A complete mobile workspace
 
-- Finds `My Clippings.txt` on a USB-connected Kindle or imports it manually.
-- Parses Chinese and English titles, authors, locations, pages, highlights, notes, and hashtags.
-- Reconciles repeated imports and edited Kindle notes without producing duplicate drafts.
-- Keeps search, filters, edits, and settings in browser-local storage.
-- Copies a selected highlight as portable plain text.
-- Exports quote, comment, and memo cards in several social formats.
-- Packages batch exports into one ZIP download.
-- Supports system light and dark modes, keyboard focus, reduced motion, and mobile layouts.
+| Library                                                                                  | Full-screen receipt card                                                                            |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| <img src="./docs/images/mobile-library.png" width="390" alt="Mobile highlights library"> | <img src="./docs/images/mobile-receipt-card.png" width="390" alt="Full-screen mobile receipt card"> |
 
-No account, cloud service, API key, analytics, or telemetry is required.
+On narrow screens, the library and card studio become separate views with an unobstructed bottom switcher. Full-screen cards export at a fixed `1080 × 1920`, ready for mobile publishing.
 
-While the page is open, Kindle Cards detects drive-letter and Windows MTP/WPD Kindle connections. It checks for `My Clippings.txt` changes every five seconds and incrementally merges only changed content.
+### Kindle screenshots, in the same workflow
+
+Kindle Cards discovers PNG/JPEG images in the Kindle root, `screenshots`, and `documents/screenshots` folders. Local uploads are supported as well.
+
+- Originals remain intact; cropping and captions are non-destructive edits.
+- Windows OCR uses installed system languages. Results remain editable before they are copied or added to a card.
+- Originals and additive edit revisions live in `data/screenshots/`; `KINDLE_CARDS_DATA_DIR` can point new assets elsewhere.
+- Manual imports accept images up to 20 MB, and OCR always reads the complete original.
 
 ## Quick start
 
-### Portable Windows download: no setup required
+### Portable Windows build
 
-Download `kindle-cards-*-windows-x64.zip` from [Releases](https://github.com/muskkkyang/kindle-cards/releases/latest), extract it, then double-click `Kindle Cards.cmd`. The package includes its runtime and production dependencies; Node.js, Git, and npm are not required.
+1. Download `kindle-cards-*-windows-x64.zip` from [Releases](https://github.com/muskkkyang/kindle-cards/releases/latest).
+2. Extract it somewhere you intend to keep it.
+3. Double-click `Kindle Cards.cmd`.
+
+The package includes its runtime and production dependencies. Node.js, Git, and npm are not required. Import [`sample-clippings.txt`](./sample-clippings.txt) to try the complete workflow without a Kindle.
 
 ### Run from source
 
@@ -52,47 +76,60 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:4310`. You can import `sample-clippings.txt` to try the full workflow without a Kindle.
-
-## Windows launcher
+Open `http://127.0.0.1:4310`. On Windows, the repository launcher is also available:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\launch.ps1
 ```
 
-The launcher validates Node.js, installs locked dependencies, builds when needed, finds a free port from `4310-4319`, and uses a build fingerprint to avoid reopening an outdated server.
-
-To create a desktop shortcut:
+It validates Node.js, installs locked dependencies, builds when needed, and selects a free port from `4310-4319`. To create a desktop shortcut, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
 ```
 
-The script does not overwrite an existing shortcut unless `-Force` is supplied.
+The script preserves an existing shortcut unless `-Force` is supplied.
 
-## Privacy
+## Add comments and tags on Kindle
 
-- The app and API listen on `127.0.0.1` only.
-- Memos stay in browser-local storage; screenshot originals and edits stay in the application's local data folder.
-- The server reads only Kindle's `My Clippings.txt` file.
-- Windows MTP/WPD access uses a temporary read-only Shell snapshot that is removed immediately after parsing.
-- The API does not expose the full local device path to the page.
-- Copying note text only writes to the local clipboard and never sends it to an external service.
+Write a note directly on Kindle:
 
-Browser-local storage is not a backup. Keep the original clipping file or another independent copy of important notes.
+```text
+#writing #psychology This line belongs in the opening paragraph.
+```
 
-## Development
+After sync, Kindle Cards separates it into the original highlight, a clean comment, and the `writing` and `psychology` tags.
+
+## Data and privacy
+
+| Data                                     | Default location                   | Behavior                                                                              |
+| ---------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| Highlights, comments, tags, and settings | Current browser `localStorage`     | Never uploaded automatically; changing the browser origin or port does not migrate it |
+| Kindle screenshots and edit history      | `data/screenshots/` beside the app | Originals and each edit revision are stored separately                                |
+| MTP/WPD snapshots                        | System temporary directory         | Read-only copy removed immediately after parsing                                      |
+
+The page and local API listen only on `127.0.0.1`. The service reads Kindle's `My Clippings.txt` and discoverable screenshots only during an import or while the page is visible. It does not expose the full device path to the browser. Copying note text writes only to the local clipboard.
+
+Browser-local storage is not a backup. Keep the original `My Clippings.txt` and back up the complete `data` directory before upgrading.
+
+## Development and verification
 
 ```powershell
 npm ci
 npm run check
 ```
 
-The quality gate runs ESLint, TypeScript, unit and UI tests, the production build, and Prettier verification.
+The quality gate runs ESLint, TypeScript, unit tests, UI tests, a production build, and Prettier verification.
 
-Create the portable Windows package with `npm run package:portable:win`. It verifies the downloaded Node.js runtime with its official SHA-256 checksum and emits both ZIP and `.sha256` files. The script stops when an output already exists; use `./scripts/build-portable-win.ps1 -Force` only when you intend to replace it.
+| Command                        | Purpose                                             |
+| ------------------------------ | --------------------------------------------------- |
+| `npm run dev`                  | Start the local development service                 |
+| `npm run test`                 | Run parser, service, storage, and UI tests          |
+| `npm run typecheck`            | Check TypeScript types                              |
+| `npm run build`                | Build production assets                             |
+| `npm run package:portable:win` | Build the Windows x64 portable ZIP and SHA-256 file |
 
-See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md), [CONTRIBUTING.md](./CONTRIBUTING.md), and [SECURITY.md](./SECURITY.md) for project details.
+See the [architecture](./docs/ARCHITECTURE.md), [V1.x iteration and acceptance notes](./docs/V1.x-iterations.md), [contributing guide](./CONTRIBUTING.md), and [security policy](./SECURITY.md) for details.
 
 ## License
 
