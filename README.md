@@ -1,61 +1,69 @@
-# Kindle Cards
+<div align="center">
+  <img src="./assets/kindle-cards-icon.png" width="88" alt="Kindle Cards 图标">
+  <h1>Kindle Cards</h1>
+  <p><strong>把 Kindle 摘录变成可以整理、检索和分享的阅读资产。</strong></p>
+  <p>本地优先 · 无需账号 · Windows 便携运行</p>
+  <p>
+    <a href="https://github.com/muskkkyang/kindle-cards/releases/latest">下载 Windows 便携版</a>
+    · <a href="./CHANGELOG.md">查看更新</a>
+    · <a href="./README.en.md">English</a>
+  </p>
+  <p>
+    <a href="https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml"><img src="https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/muskkkyang/kindle-cards/releases/latest"><img src="https://img.shields.io/github/v/release/muskkkyang/kindle-cards" alt="Release"></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-8a5a44.svg" alt="MIT License"></a>
+  </p>
+</div>
 
-[English](./README.en.md)
+![Kindle Cards 桌面工作台：左侧整理摘录，右侧实时预览分享卡片](./docs/images/desktop-workspace.png)
 
-[![CI](https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml/badge.svg)](https://github.com/muskkkyang/kindle-cards/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/muskkkyang/kindle-cards)](https://github.com/muskkkyang/kindle-cards/releases/latest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-2f6f62.svg)](./LICENSE)
+Kindle Cards 把分散的 Kindle 划线、笔记和截图收进一条清晰的本地工作流。连接设备或导入文件后，你可以搜索、校对、补充评论与标签，再将内容输出为纯文本、PNG 卡片或批量 ZIP。
 
-一个本地优先的 Kindle 摘录工作台。它把 `My Clippings.txt` 解析成可搜索、可编辑的阅读笔记，并导出适合朋友圈、小红书和公众号的分享卡片。
+> 阅读数据留在自己的电脑里。应用不要求登录，不依赖云服务，也不包含遥测、广告或自动上传逻辑。
 
-| 摘录库                                            | 卡片工作台                                                   |
-| ------------------------------------------------- | ------------------------------------------------------------ |
-| ![移动端摘录库](./docs/images/mobile-library.png) | ![移动端卡片工作台](./docs/images/mobile-card-workspace.png) |
+## 从划线到卡片
 
-## 为什么做这个工具
+| 01 · 带回阅读痕迹                                                                 | 02 · 整理成自己的内容                                          | 03 · 输出与分享                                           |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------- |
+| 自动识别盘符或 Windows MTP/WPD 连接的 Kindle，也可导入、粘贴 `My Clippings.txt`。 | 搜索书名、正文、评论和标签；自动合并重复同步，并保留本地修改。 | 复制通用笔记文本，或导出金句、评论、Memo 卡片与批量 ZIP。 |
 
-Kindle 摘录适合阅读时快速记录，但后续整理和分享通常很割裂。Kindle Cards 把流程收敛为一条本地链路：
+页面打开时，应用每 5 秒检查一次 Kindle 连接与内容版本。只有 `My Clippings.txt` 发生变化时才执行增量合并，避免重复草稿和无意义传输。
 
-```text
-Kindle / My Clippings.txt -> 本地解析与整理 -> 笔记文本或 PNG 卡片
-```
+## 为阅读后的思考而设计
 
-不需要账号、云服务或 API 密钥。摘录保存在当前浏览器的本地存储中；截图原图和编辑记录保存在应用目录的 `data/screenshots/`，不上传云端。
+| 阅读整理                                               | 卡片表达                                      |
+| ------------------------------------------------------ | --------------------------------------------- |
+| 解析中英文书名、作者、页码、位置、摘录、笔记与 `#标签` | 金句、评论、Memo 三种内容结构                 |
+| 识别连续修改的 Kindle 笔记，保留更完整的版本           | 纸张、浅色、深色、小票四种主题                |
+| 本地搜索、标签筛选、编辑与自动保存                     | 阅读横卡、1:1、3:4、公众号横图、手机全屏 9:16 |
+| 截图按内容去重，编辑保留历史版本                       | PNG 单张导出与 ZIP 批量导出                   |
 
-## 主要能力
+### 移动端也能完整整理
 
-- 自动发现 Kindle 根目录 `screenshot*.png/jpg` 及 `screenshots`、`documents/screenshots` 中的图片，提示导入新截图。
-- 截图库、非破坏裁切、书籍归属、批注、三种纸张和卡片比例、PNG 输出及原图下载。
-- Windows 本地 OCR：使用系统已安装的识别语言，结果可校对、导出文字或加入卡片批注。
-- 截图按内容去重，编辑自动保存并保留历史版本；重复同步保护网页中的摘录编辑。
+| 摘录库                                                                      | 手机全屏小票卡                                                                           |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| <img src="./docs/images/mobile-library.png" width="390" alt="移动端摘录库"> | <img src="./docs/images/mobile-receipt-card.png" width="390" alt="手机全屏小票主题卡片"> |
 
-- 自动识别有盘符或通过 Windows MTP/WPD 连接的 Kindle，也可导入或粘贴 `My Clippings.txt`。
-- 页面打开时持续感知 Kindle 连接和文件变化，只在内容变化后自动增量同步。
-- 解析中英文书名、作者、页码、位置、摘录、笔记和 `#标签`。
-- 识别连续修改的 Kindle 笔记，保留内容更完整的版本。
-- 重复同步时更新已有记录，避免生成重复草稿。
-- 本地搜索、筛选、编辑与自动保存。
-- 一键复制为通用笔记文本。
-- 导出金句卡、评论卡和阅读 memo 卡。
-- 支持 阅读横卡、1:1、3:4 和公众号横图尺寸。
-- 批量导出为单个 ZIP 文件，避免浏览器连续下载提示。
-- 支持系统深浅色、键盘焦点、减少动态效果和窄屏工作区切换。
+窄屏下，摘录库和卡片工作台切换为两个独立视图，底部操作不会遮挡正文。手机全屏卡固定输出为 `1080 × 1920`，适合直接保存或发布到移动端内容平台。
+
+### Kindle 截图也能进入同一套工作流
+
+应用可以发现 Kindle 根目录及 `screenshots`、`documents/screenshots` 中的 PNG/JPEG 图片，也支持手动导入本地截图。
+
+- 原图保留，裁切和批注采用非破坏式编辑。
+- Windows OCR 使用系统已经安装的识别语言；识别结果可校对、复制或加入卡片。
+- 截图原图和递增编辑版本保存在 `data/screenshots/`，可通过 `KINDLE_CARDS_DATA_DIR` 指定新目录。
+- 每张手动导入的图片不超过 20 MB；OCR 始终读取完整原图。
 
 ## 快速开始
 
-### v1.2.0 截图迭代
+### Windows 便携版
 
-打开“截图”页，连接 Kindle 后会提示新截图；点击“导入新截图”后可编辑。也可用“导入截图”选择本地 PNG/JPEG（每张不超过 20 MB）。裁切不改变原图，OCR 读取完整原图；识别文字需要人工校对。批注过长时卡片自动延长，避免截断文字。
+1. 从 [Releases](https://github.com/muskkkyang/kindle-cards/releases/latest) 下载 `kindle-cards-*-windows-x64.zip`。
+2. 解压到希望长期保存的位置。
+3. 双击 `Kindle Cards.cmd`。
 
-自动检测在页面可见时每 5 秒触发，设备传输耗时另计。MTP 使用 Windows Shell 轮询，不是关闭页面后仍运行的后台监听。无法从截图可靠判断书名时，由用户填写或从已有书名中选择。
-
-截图默认保存在 `data/screenshots/`：每个内容指纹目录包含 `original.png/jpg` 和递增的 JSON 编辑版本。升级前备份整个 `data` 目录。可通过 `KINDLE_CARDS_DATA_DIR` 指定截图目录；它不会迁移旧截图。现有摘录仍属于浏览器 origin，换端口不会自动迁移摘录。
-
-本轮验收记录见 [V1.x 迭代与验收](docs/V1.x-iterations.md)。
-
-### Windows 便携版：无需安装任何开发环境
-
-从 [Releases](https://github.com/muskkkyang/kindle-cards/releases/latest) 下载 `kindle-cards-*-windows-x64.zip`，解压后双击 `Kindle Cards.cmd`。压缩包已包含运行时和全部生产依赖，不需要安装 Node.js、Git 或 npm。
+便携包已包含运行时和生产依赖，不需要另外安装 Node.js、Git 或 npm。首次体验可以导入仓库中的 [`sample-clippings.txt`](./sample-clippings.txt)，无需连接 Kindle。
 
 ### 从源码运行
 
@@ -68,81 +76,64 @@ npm ci
 npm run dev
 ```
 
-打开 `http://127.0.0.1:4310`。
-
-你也可以先导入仓库中的 `sample-clippings.txt`，不用连接 Kindle 即可体验完整流程。
-
-## Windows 桌面使用
-
-一键启动：
+打开 `http://127.0.0.1:4310`。Windows 下也可以运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\launch.ps1
 ```
 
-启动器会检查 Node.js 版本、安装依赖、按需构建，并从 `4310-4319` 中选择可用端口。它使用构建指纹识别旧服务，避免打开过期界面。
-
-创建桌面快捷方式：
+启动器会检查 Node.js、安装锁定依赖、按需构建，并从 `4310-4319` 选择可用端口。创建桌面快捷方式可运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
 ```
 
-已有同名快捷方式时脚本不会覆盖。确认要更新快捷方式目标后，可添加 `-Force`。
+已有同名快捷方式时脚本不会覆盖；明确需要更新目标时可添加 `-Force`。
 
-## Kindle 笔记格式
+## 在 Kindle 笔记中添加评论和标签
 
-在 Kindle 笔记里直接写评论和标签：
+直接在一条 Kindle 笔记里输入：
 
 ```text
 #写作 #心理学 这句话适合放进文章开头。
 ```
 
-同步后会得到：
+同步后，Kindle Cards 会整理为：
 
-- 摘录：Kindle 划线原文
-- 评论：去除标签后的笔记正文
-- 标签：`写作`、`心理学`
+- **摘录**：Kindle 划线原文
+- **评论**：去除标签后的笔记正文
+- **标签**：`写作`、`心理学`
 
-## 隐私与安全
+## 数据与隐私
 
-- 页面和本地 API 只监听 `127.0.0.1`。
-- 摘录、评论和标签保存在浏览器本地存储。
-- 服务只读取已连接 Kindle 中的 `My Clippings.txt`。
-- Windows MTP/WPD 设备通过系统 Shell 生成临时只读快照；解析完成后立即删除快照。
-- API 不向页面暴露本机完整文件路径。
-- “复制笔记文本”只写入本机剪贴板，不会自动发送到任何外部服务。
-- 项目不包含分析脚本、遥测、广告或云端上传逻辑。
+| 数据                   | 默认位置                     | 说明                                               |
+| ---------------------- | ---------------------------- | -------------------------------------------------- |
+| 摘录、评论、标签与设置 | 当前浏览器的 `localStorage`  | 不会自动上传；更换浏览器 origin 或端口不会自动迁移 |
+| Kindle 截图与编辑历史  | 应用目录 `data/screenshots/` | 原图与每次编辑分开保存                             |
+| MTP/WPD 临时快照       | 系统临时目录                 | 只读复制，解析完成后立即清理                       |
 
-浏览器本地数据并不等于备份。重要摘录仍应保留原始 `My Clippings.txt` 或其他独立备份。
+页面和本地 API 只监听 `127.0.0.1`。服务仅在用户发起导入或页面可见时读取 Kindle 的 `My Clippings.txt` 与可发现截图，API 不向页面暴露完整设备路径。“复制笔记文本”只写入本机剪贴板。
 
-## 开发与质量检查
+浏览器本地存储不等于备份。升级前建议保留原始 `My Clippings.txt`，并备份整个 `data` 目录。
+
+## 开发与验证
 
 ```powershell
 npm ci
 npm run check
 ```
 
-`npm run check` 会依次执行 ESLint、TypeScript、单元与界面测试、生产构建和格式检查。
+`npm run check` 依次执行 ESLint、TypeScript、单元测试、界面测试、生产构建与 Prettier 检查。
 
-Windows 便携包可通过 `npm run package:portable:win` 生成；它会校验下载的 Node.js 运行时 SHA-256，并同时输出 ZIP 与 `.sha256` 校验文件。为防止意外覆盖，已有同名输出时脚本会停止；确认覆盖时可直接执行 `./scripts/build-portable-win.ps1 -Force`。
+| 命令                           | 用途                                   |
+| ------------------------------ | -------------------------------------- |
+| `npm run dev`                  | 启动本地开发服务                       |
+| `npm run test`                 | 运行解析器、服务、存储与界面测试       |
+| `npm run typecheck`            | 检查 TypeScript 类型                   |
+| `npm run build`                | 生成生产文件                           |
+| `npm run package:portable:win` | 构建 Windows x64 便携包和 SHA-256 文件 |
 
-常用命令：
-
-| 命令                | 用途                             |
-| ------------------- | -------------------------------- |
-| `npm run dev`       | 启动本地开发服务                 |
-| `npm run test`      | 运行解析器、服务、存储与界面测试 |
-| `npm run lint`      | 检查代码规范                     |
-| `npm run typecheck` | 检查 TypeScript 类型             |
-| `npm run build`     | 生成生产文件                     |
-| `npm run format`    | 统一代码与文档格式               |
-
-架构说明见 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
-
-## 参与贡献
-
-问题反馈和改进建议欢迎通过 [GitHub Issues](https://github.com/muskkkyang/kindle-cards/issues) 提交。开始编码前请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)，安全问题请按 [SECURITY.md](./SECURITY.md) 私下报告。
+更多信息见 [架构说明](./docs/ARCHITECTURE.md)、[V1.x 迭代与验收](./docs/V1.x-iterations.md)、[贡献指南](./CONTRIBUTING.md)与[安全策略](./SECURITY.md)。
 
 ## 许可证
 
