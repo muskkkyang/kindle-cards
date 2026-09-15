@@ -114,7 +114,9 @@ powershell -ExecutionPolicy Bypass -File .\create-desktop-shortcut.ps1
 
 页面和本地 API 只监听 `127.0.0.1`。服务仅在用户发起导入或页面可见时读取 Kindle 的 `My Clippings.txt` 与可发现截图，API 不向页面暴露完整设备路径。“复制笔记文本”只写入本机剪贴板。
 
-浏览器本地存储不等于备份。升级前建议保留原始 `My Clippings.txt`，并备份整个 `data` 目录。
+页面右上角的“数据”菜单可以导出完整 ZIP 备份，内容包括摘录、本地修改、设置、截图原图和截图编辑历史。恢复会先检查清单、文件大小和 SHA-256，只新增缺失资料；同编号差异保留当前版本。
+
+浏览器本地存储本身不等于备份。升级或迁移电脑前，请导出完整备份，并继续保留 Kindle 原始的 `My Clippings.txt`。
 
 ## 开发与验证
 

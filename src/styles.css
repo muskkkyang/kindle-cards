@@ -301,6 +301,21 @@ select:focus-visible {
   box-shadow: var(--shadow);
 }
 
+.dataPopover {
+  width: min(330px, calc(100vw - 32px));
+}
+
+.dataPopover strong,
+.dataPopover p {
+  margin: 0;
+}
+
+.dataPopover p {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .importPopover label,
 .editorPanel label,
 .sizeField {

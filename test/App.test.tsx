@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../src/App";
-import { STORAGE_KEY } from "../src/lib/storage";
+import { parseStoredMemos, STORAGE_KEY } from "../src/lib/storage";
 import type { Memo } from "../src/types";
 
 const memo: Memo = {
@@ -55,9 +55,9 @@ describe("App", () => {
     await user.clear(comment);
     await user.type(comment, "更新后的评论。");
 
-    const stored = JSON.parse(
-      window.localStorage.getItem(STORAGE_KEY) || "[]",
-    ) as Memo[];
+    const stored = parseStoredMemos(
+      window.localStorage.getItem(STORAGE_KEY) || "",
+    ).memos;
     expect(stored[0].comment).toBe("更新后的评论。");
 
     await user.click(screen.getByRole("button", { name: "复制笔记文本" }));
@@ -110,9 +110,9 @@ describe("App", () => {
       await screen.findByText(/Kindle Paperwhite.*已自动同步/u),
     ).toBeTruthy();
     expect(screen.getByRole("heading", { name: "2 条内容" })).toBeTruthy();
-    const stored = JSON.parse(
-      window.localStorage.getItem(STORAGE_KEY) || "[]",
-    ) as Memo[];
+    const stored = parseStoredMemos(
+      window.localStorage.getItem(STORAGE_KEY) || "",
+    ).memos;
     expect(stored.some((item) => item.id === incoming.id)).toBe(true);
   });
 });

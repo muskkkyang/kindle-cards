@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import { parseKindleClippings } from "./src/lib/kindleParser.js";
 import { createScreenshotStore } from "./src/lib/screenshotStore.mjs";
 import { screenshotRouter } from "./src/lib/screenshotApi.mjs";
+import { backupRouter } from "./src/lib/backupApi.mjs";
 
 const currentFile = fileURLToPath(import.meta.url);
 const projectRoot = path.dirname(currentFile);
@@ -249,6 +250,13 @@ export function createApiApp({
       createScreenshotStore(path.resolve(screenshotDirectory)),
       screenshotOptions,
     ),
+  );
+  app.use(
+    "/api/backup",
+    backupRouter({
+      screenshotDirectory: path.resolve(screenshotDirectory),
+      appVersion: packageJson.version,
+    }),
   );
 
   app.use("/api", (_request, response) => {

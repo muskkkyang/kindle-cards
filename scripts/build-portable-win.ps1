@@ -124,7 +124,7 @@ $ExtractRoot = Join-Path ([IO.Path]::GetTempPath()) "kindle-cards-node-$([guid]:
 
 try {
   New-Item -ItemType Directory -Path $StagingRoot -Force | Out-Null
-  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js", "scripts/read-kindle-mtp.ps1", "src/lib/screenshotStore.mjs", "src/lib/kindleScreenshots.mjs", "src/lib/screenshotApi.mjs", "scripts/scan-kindle-screenshots.ps1", "scripts/ocr-screenshot.ps1")) {
+  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js", "scripts/read-kindle-mtp.ps1", "src/lib/screenshotStore.mjs", "src/lib/kindleScreenshots.mjs", "src/lib/screenshotApi.mjs", "src/lib/backupArchive.mjs", "src/lib/backupApi.mjs", "scripts/scan-kindle-screenshots.ps1", "scripts/ocr-screenshot.ps1")) {
     Copy-RequiredFile -RelativePath $File -DestinationRoot $StagingRoot
   }
   Copy-Item -LiteralPath (Join-Path $ProjectRoot "dist") -Destination (Join-Path $StagingRoot "dist") -Recurse -Force
@@ -229,7 +229,8 @@ Kindle Cards for Windows
 3. Your browser will open automatically at a local address.
 
 This portable package includes its own Node.js runtime. You do not need to install Node.js, Git, or npm.
-Memos remain in browser storage. Original screenshots and edit revisions are saved in data/screenshots next to the app. Back up this folder before upgrading.
+Memos remain in browser storage. Original screenshots and edit revisions are saved in data/screenshots next to the app.
+Use Data -> Export complete backup in the app before upgrading or moving to another computer.
 '@ | Set-Content -LiteralPath (Join-Path $StagingRoot "README-START-HERE.txt") -Encoding utf8
 
   @'

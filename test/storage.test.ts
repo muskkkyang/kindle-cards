@@ -42,4 +42,37 @@ describe("storage validation", () => {
       "心理学",
     ]);
   });
+
+  test("rejects a stale window instead of overwriting a newer save", () => {
+    window.localStorage.clear();
+    const original = {
+      id: "memo-1",
+      title: "书名",
+      author: "作者",
+      quote: "摘录",
+      comment: "原评论",
+      tags: [],
+      locationStart: 1,
+      locationEnd: 2,
+      page: "",
+      addedAtRaw: "",
+    };
+    const first = saveMemos([original]);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const staleRevision = first.revision;
+    const newer = saveMemos(
+      [{ ...original, comment: "窗口 A 的修改" }],
+      staleRevision,
+    );
+    expect(newer.ok).toBe(true);
+    const stale = saveMemos([{ ...original, tags: ["窗口B"] }], staleRevision);
+    expect(stale.ok).toBe(false);
+    if (stale.ok) return;
+    expect(stale.conflict).toBe(true);
+    expect(
+      parseStoredMemos(window.localStorage.getItem(STORAGE_KEY) || "").memos[0]
+        .comment,
+    ).toBe("窗口 A 的修改");
+  });
 });

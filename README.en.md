@@ -110,7 +110,9 @@ After sync, Kindle Cards separates it into the original highlight, a clean comme
 
 The page and local API listen only on `127.0.0.1`. The service reads Kindle's `My Clippings.txt` and discoverable screenshots only during an import or while the page is visible. It does not expose the full device path to the browser. Copying note text writes only to the local clipboard.
 
-Browser-local storage is not a backup. Keep the original `My Clippings.txt` and back up the complete `data` directory before upgrading.
+Use **Data → Export complete backup** to create a ZIP containing highlights, local edits, settings, screenshot originals, and screenshot edit history. Restore verifies the manifest, file sizes, and SHA-256 hashes before adding missing data; current data wins when the same ID differs.
+
+Browser-local storage alone is not a backup. Export a complete backup before an upgrade or computer migration, and keep Kindle's original `My Clippings.txt` as well.
 
 ## Development and verification
 

@@ -34,9 +34,12 @@ import { mergeMemos, parseKindleClippings } from "./lib/kindleParser.js";
 import {
   loadMemos,
   loadSettings,
+  normalizeSettings,
   normalizeTags,
+  parseStoredMemos,
   saveMemos,
   saveSettings,
+  STORAGE_KEY,
 } from "./lib/storage";
 import type {
   AppSettings,
@@ -115,12 +118,15 @@ export function App() {
   const [mobileView, setMobileView] = useState<MobileView>("library");
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isManagingData, setIsManagingData] = useState(false);
   const [didCopy, setDidCopy] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const backupFileRef = useRef<HTMLInputElement>(null);
   const pasteDetailsRef = useRef<HTMLDetailsElement>(null);
   const copyTimerRef = useRef<number | null>(null);
   const memosRef = useRef<Memo[]>(initialData.memos);
+  const storageRevisionRef = useRef(initialData.revision);
   const syncInFlightRef = useRef(false);
   const lastKindleRevisionRef = useRef("");
   const kindleWasConnectedRef = useRef<boolean | null>(null);
@@ -139,6 +145,28 @@ export function App() {
     },
     [],
   );
+
+  useEffect(() => {
+    function receiveExternalMemos(event: StorageEvent) {
+      if (event.key !== STORAGE_KEY || event.newValue == null) return;
+      const next = parseStoredMemos(event.newValue);
+      if (next.warning || next.revision === storageRevisionRef.current) return;
+      storageRevisionRef.current = next.revision;
+      memosRef.current = next.memos;
+      setMemos(next.memos);
+      setSelectedId((current) =>
+        next.memos.some((memo) => memo.id === current)
+          ? current
+          : next.memos[0]?.id || "",
+      );
+      setStatus({
+        tone: "success",
+        text: "已载入另一窗口刚保存的摘录修改。",
+      });
+    }
+    window.addEventListener("storage", receiveExternalMemos);
+    return () => window.removeEventListener("storage", receiveExternalMemos);
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -209,9 +237,12 @@ export function App() {
         memosRef.current = result.memos;
         setMemos(result.memos);
         setSelectedId((current) => current || result.memos[0]?.id || "");
-        const saveResult = saveMemos(result.memos);
-        if (saveResult.ok && payload.revision)
-          lastKindleRevisionRef.current = payload.revision;
+        const saveResult = saveMemos(result.memos, storageRevisionRef.current);
+        if (saveResult.ok) {
+          storageRevisionRef.current = saveResult.revision;
+          if (payload.revision)
+            lastKindleRevisionRef.current = payload.revision;
+        }
         setStatus(
           saveResult.ok
             ? {
@@ -299,7 +330,89 @@ export function App() {
     memosRef.current = nextMemos;
     setMemos(nextMemos);
     if (!selectedId && nextMemos[0]) setSelectedId(nextMemos[0].id);
-    return saveMemos(nextMemos);
+    const result = saveMemos(nextMemos, storageRevisionRef.current);
+    if (result.ok) storageRevisionRef.current = result.revision;
+    return result;
+  }
+
+  async function exportFullBackup() {
+    if (isManagingData) return;
+    setIsManagingData(true);
+    setStatus({ tone: "working", text: "正在整理完整备份..." });
+    try {
+      const response = await fetch("/api/backup/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memos: memosRef.current, settings }),
+      });
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.message || "完整备份生成失败。");
+      }
+      const disposition = response.headers.get("content-disposition") || "";
+      const filename =
+        /filename="?([^";]+)"?/iu.exec(disposition)?.[1] ||
+        `kindle-cards-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+      downloadBlob(await response.blob(), filename);
+      setStatus({
+        tone: "success",
+        text: `完整备份已导出：${memosRef.current.length} 条摘录、${screenshotCount} 张截图。`,
+      });
+    } catch (error) {
+      setStatus({
+        tone: "error",
+        text: error instanceof Error ? error.message : "完整备份生成失败。",
+      });
+    } finally {
+      setIsManagingData(false);
+    }
+  }
+
+  async function restoreFullBackup(file: File) {
+    if (isManagingData) return;
+    setIsManagingData(true);
+    setStatus({ tone: "working", text: `正在校验 ${file.name}...` });
+    try {
+      const response = await fetch("/api/backup/restore", {
+        method: "POST",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok)
+        throw new Error(payload.message || "备份恢复失败。");
+      const restored = parseStoredMemos(JSON.stringify(payload.memos));
+      if (restored.warning) throw new Error(restored.warning);
+      const currentById = new Map(
+        memosRef.current.map((memo) => [memo.id, memo]),
+      );
+      let memoConflicts = 0;
+      let memosAdded = 0;
+      for (const memo of restored.memos) {
+        const current = currentById.get(memo.id);
+        if (!current) {
+          currentById.set(memo.id, memo);
+          memosAdded += 1;
+        } else if (JSON.stringify(current) !== JSON.stringify(memo)) {
+          memoConflicts += 1;
+        }
+      }
+      const nextMemos = [...currentById.values()];
+      const saveResult = persist(nextMemos);
+      if (!saveResult.ok) throw new Error(saveResult.message);
+      setSettings(normalizeSettings(payload.settings));
+      setStatus({
+        tone: memoConflicts ? "neutral" : "success",
+        text: `恢复完成：新增 ${memosAdded} 条摘录、${payload.screenshotsAdded || 0} 张截图；已有资料保持不变${memoConflicts ? `，${memoConflicts} 条同编号差异保留当前版本` : ""}。`,
+      });
+    } catch (error) {
+      setStatus({
+        tone: "error",
+        text: error instanceof Error ? error.message : "备份恢复失败。",
+      });
+    } finally {
+      setIsManagingData(false);
+    }
   }
 
   function changeSetting<Key extends keyof AppSettings>(
@@ -612,7 +725,7 @@ export function App() {
   return (
     <main
       className={`appShell view-${workspaceView} mobile-${mobileView}`}
-      aria-busy={isSyncing || isExporting}
+      aria-busy={isSyncing || isExporting || isManagingData}
     >
       <header className="appHeader">
         <div className="brandLockup">
@@ -684,6 +797,38 @@ export function App() {
                 <Upload size={16} aria-hidden="true" />
                 解析内容
               </button>
+            </div>
+          </details>
+          <details className="importMore dataMore">
+            <summary>数据</summary>
+            <div className="importPopover dataPopover">
+              <strong>完整备份与恢复</strong>
+              <p>备份包含摘录、本地修改、设置、截图原图和编辑历史。</p>
+              <button
+                className="actionButton secondary"
+                disabled={isManagingData}
+                onClick={() => void exportFullBackup()}
+              >
+                <Download size={16} aria-hidden="true" /> 导出完整备份
+              </button>
+              <button
+                className="actionButton secondary"
+                disabled={isManagingData}
+                onClick={() => backupFileRef.current?.click()}
+              >
+                <Upload size={16} aria-hidden="true" /> 从备份恢复
+              </button>
+              <input
+                ref={backupFileRef}
+                hidden
+                type="file"
+                accept=".zip,application/zip,application/octet-stream"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void restoreFullBackup(file);
+                  event.currentTarget.value = "";
+                }}
+              />
             </div>
           </details>
         </div>
