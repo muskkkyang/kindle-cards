@@ -2,6 +2,18 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 和 [Semantic Versioning](https://semver.org/)。
 
+## [Unreleased]
+
+### Changed
+
+- React 与 React DOM 同步更新至 19.3.1，并同步更新类型声明；Dependabot 将运行库与类型声明放在同一更新组。
+- 更新 lucide-react、JSZip、Vite 8 与 React 插件 6；开发依赖组仅合并 minor、patch 更新，大版本升级单独验证。
+- 保留 TypeScript 5.9：当前 typescript-eslint 不支持 TypeScript 7；保留 jsdom 29，避免提高现有 Node 24 开发环境的最低补丁版本要求。
+
+### Fixed
+
+- 更新锁文件中的 brace-expansion、undici、proxy-addr、source-map-js，修复依赖审计发现的漏洞。
+
 ## [1.3.0] - 2026-09-15
 
 ### Added
