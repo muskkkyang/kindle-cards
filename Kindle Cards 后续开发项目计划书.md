@@ -1280,14 +1280,22 @@ Screenshot Card。
 ### KC-120
 Card Studio 重构。
 
+状态：v1.4.0-rc.1 已实现并完成本轮软件验收，详见 docs/V1.4-acceptance.md。
+
 ### KC-121
 Typography System。
+
+状态：v1.4.0-rc.1 已实现并完成本轮软件验收，详见 docs/V1.4-acceptance.md。
 
 ### KC-122
 Card Layout Engine。
 
+状态：v1.4.0-rc.1 已实现并完成本轮软件验收，详见 docs/V1.4-acceptance.md。
+
 ### KC-123
 Theme System。
+
+状态：v1.4.0-rc.1 已实现并完成本轮软件验收，详见 docs/V1.4-acceptance.md。
 
 ---
 
