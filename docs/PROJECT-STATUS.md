@@ -1,0 +1,61 @@
+# Kindle Cards 项目成果与开发管理
+
+更新日期：2026-10-21。此文档是成果索引与阶段状态快照，完整路线以根目录《Kindle Cards 后续开发项目计划书.md》为准；历史验收细节以 V1.x-iterations.md 为准。
+
+## 当前结论
+
+当前已发布版本为 v1.3.0。Phase 1 核心同步与截图链路已实现，完整第一阶段尚未验收关闭。Phase 2—4 为规划，不代表已实现。依赖稳定性更新位于 Draft PR #13，CI quality 已通过，尚未合并至 main。
+
+## 已有成果
+
+| 成果                                | 位置                                                                 | 状态                             |
+| ----------------------------------- | -------------------------------------------------------------------- | -------------------------------- |
+| 应用源码、Kindle 解析及本地服务     | src/、server.mjs                                                     | 已提交；当前工作基于 v1.3.0      |
+| 自动同步及数据合并保护              | src/App.tsx、src/lib/kindleParser.js、src/lib/storage.ts             | 已实现，页面可见时轮询           |
+| 截图库、裁切、OCR、截图卡片         | src/components/ScreenshotWorkspace.tsx、src/lib/、scripts/           | 核心链路已实现；真机边界仍待验收 |
+| 摘录卡片、尺寸、主题与导出          | src/components/CardPreview.tsx、src/lib/cardUtils.ts                 | 已实现现有模板与尺寸             |
+| 完整 ZIP 备份、恢复、多窗口冲突保护 | src/lib/backupArchive.mjs、src/lib/backupApi.mjs、src/lib/storage.ts | v1.3.0 已发布                    |
+| 自动化测试与持续集成                | test/、.github/workflows/                                            | 已纳入版本管理                   |
+| Windows 便携版与构建工具            | scripts/build-portable-win.ps1、GitHub Releases                      | v1.3.0 已发布                    |
+| 产品定义、设计、架构和协作约定      | PRODUCT.md、DESIGN.md、docs/ARCHITECTURE.md、CONTRIBUTING.md         | 已纳入版本管理                   |
+| 产品界面示例                        | docs/images/、README.md、README.en.md                                | 已纳入版本管理                   |
+| 完整长期开发规划                    | 根目录《Kindle Cards 后续开发项目计划书.md》                         | 本次按用户要求纳入版本管理       |
+| 历史迭代与验收证据                  | docs/V1.x-iterations.md、CHANGELOG.md                                | 区分已实现与待验证               |
+
+源码：https://github.com/muskkkyang/kindle-cards
+
+发布包：https://github.com/muskkkyang/kindle-cards/releases
+
+依赖更新：https://github.com/muskkkyang/kindle-cards/pull/13
+
+## 开发阶段
+
+| 阶段           | 目标                           | 当前状态                             | 退出条件                                                              |
+| -------------- | ------------------------------ | ------------------------------------ | --------------------------------------------------------------------- |
+| Phase 1 / V1.x | 做好同步、截图和卡片体验       | 核心功能已实现，增强与最终验收未完成 | 真机链路、卡片增强、基础书库展示完成，检查通过                        |
+| Phase 2 / V2.0 | Book-centric Reading Library   | 规划中                               | Vault、SQLite、迁移、Book/Trace/Asset、Library 与 Book Space 完整工作 |
+| Phase 3 / V2.5 | Reading Workspace              | 规划中                               | 选择书籍与资料、建立研究、整理笔记、输出 Obsidian 的闭环              |
+| Phase 4 / V3.0 | Portable Reading & Research OS | 规划中                               | 可移动 Vault 恢复完整阅读环境，可选独立 AI Provider 与设备适配        |
+
+## 第一阶段收尾顺序
+
+1. 真机验收：新摘录、新截图、重复扫描、传输中拔出与重连；保存截图、条数和原图校验结果。
+2. 修复测试临时端口偶发失败，重新完成全套检查。
+3. Card Studio：围绕现有实现补齐 UI、模板、Typography、布局自由度和图片背景；分别验收摘录卡与截图卡。
+4. Library 基础视觉、书籍分组与封面；不提前引入 V2 数据架构。
+5. 汇总验收证据并明确关闭 Phase 1，再进入 V2 数据模型与迁移设计。
+
+## 验证边界
+
+2026-10-21 本地检查：lint 与 TypeScript 通过；22 个 Node 测试首次 20 通过、2 个因 fetch 的 bad port 失败。相关服务测试单独重跑 5/5 通过。测试使用临时端口，疑似命中受限端口，需要复现并修复；尚未证明根因已关闭。完整命令在 Node 测试处中止，本轮 UI 测试、构建和格式检查未因此获得完整通过结论。2026-10-19 PR #13 的远程 CI quality 已通过。两次结果均保留，不相互替代。
+
+历史记录中的真机截图发现、重复扫描、传输中断验收仍需逐项补证；用户此前确认功能测试成功，不视为每个边界项已经关闭。
+
+## 管理约定
+
+- 已实现、待验收、待开发、规划中分别记录；不将规划项标为完成。
+- 每项开发任务包含 Goal、Current behavior、Expected behavior、Scope、Out of scope、涉及文件、数据兼容、Tests 和 Acceptance criteria。
+- 现有原始资料、手动同步与本地数据兼容必须保留；涉及删除、迁移、发布和权限的动作遵循用户授权。
+- 项目资料进入仓库，工作项和状态进入 GitHub Projects；发布二进制进入 Releases。
+- 不上传个人阅读数据、截图原件、备份、运行日志、凭据、依赖缓存及可重新生成的构建缓存。
+- 当前没有承诺上线日期；阶段以验收标准推进。
