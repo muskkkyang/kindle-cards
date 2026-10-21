@@ -26,6 +26,10 @@
 
 发布包：https://github.com/muskkkyang/kindle-cards/releases
 
+项目看板（私有）：https://github.com/users/muskkkyang/projects/2
+
+完整规划与成果归档 PR：https://github.com/muskkkyang/kindle-cards/pull/14
+
 依赖更新：https://github.com/muskkkyang/kindle-cards/pull/13
 
 ## 开发阶段
@@ -48,6 +52,8 @@
 ## 验证边界
 
 2026-10-21 本地检查：lint 与 TypeScript 通过；22 个 Node 测试首次 20 通过、2 个因 fetch 的 bad port 失败。相关服务测试单独重跑 5/5 通过。测试使用临时端口，疑似命中受限端口，需要复现并修复；尚未证明根因已关闭。完整命令在 Node 测试处中止，本轮 UI 测试、构建和格式检查未因此获得完整通过结论。2026-10-19 PR #13 的远程 CI quality 已通过。两次结果均保留，不相互替代。
+
+本次归档 PR #14 的远程 CI 在依赖审计步骤失败：当前 Vite 8.3.1 落在新报告的高危漏洞影响范围（8.3.0—8.3.2，GHSA-698v-4r3x-3vcv、GHSA-r825-w8mm-5pxw、GHSA-587h-7wmj-h5pm）。证据：Actions run 39563857032。已在 Projects 列为待修复与回归；本次资料提交不扩大为依赖升级，不将历史 CI 通过描述为当前全绿。
 
 历史记录中的真机截图发现、重复扫描、传输中断验收仍需逐项补证；用户此前确认功能测试成功，不视为每个边界项已经关闭。
 
