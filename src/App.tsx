@@ -1,3 +1,6 @@
+import { AppearanceControls } from "./components/AppearanceControls";
+import { BookShelf } from "./components/BookShelf";
+import { bookKey, groupBooks, mergeRestoredSettings } from "./lib/studio";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
@@ -107,6 +110,7 @@ export function App() {
   );
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("");
+  const [activeBook, setActiveBook] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [status, setStatus] = useState<AppStatus>(() =>
@@ -299,10 +303,7 @@ export function App() {
     );
   }, [memos]);
 
-  const books = useMemo(
-    () => new Set(memos.map((memo) => memo.title)).size,
-    [memos],
-  );
+  const books = useMemo(() => groupBooks(memos).length, [memos]);
   const recentCutoff = useMemo(() => getRecentCutoff(memos), [memos]);
 
   const filtered = useMemo(() => {
@@ -317,6 +318,7 @@ export function App() {
       ]
         .join(" ")
         .toLocaleLowerCase("zh-CN");
+      if (activeBook && bookKey(memo) !== activeBook) return false;
       if (needle && !haystack.includes(needle)) return false;
       if (activeTag && !memo.tags.includes(activeTag)) return false;
       if (filterMode === "untagged" && memo.tags.length > 0) return false;
@@ -324,7 +326,7 @@ export function App() {
         return (Date.parse(memo.importedAt || "") || 0) === recentCutoff;
       return true;
     });
-  }, [activeTag, filterMode, memos, query, recentCutoff]);
+  }, [activeBook, activeTag, filterMode, memos, query, recentCutoff]);
 
   function persist(nextMemos: Memo[]) {
     memosRef.current = nextMemos;
@@ -400,7 +402,9 @@ export function App() {
       const nextMemos = [...currentById.values()];
       const saveResult = persist(nextMemos);
       if (!saveResult.ok) throw new Error(saveResult.message);
-      setSettings(normalizeSettings(payload.settings));
+      setSettings((current) =>
+        mergeRestoredSettings(current, normalizeSettings(payload.settings)),
+      );
       setStatus({
         tone: memoConflicts ? "neutral" : "success",
         text: `恢复完成：新增 ${memosAdded} 条摘录、${payload.screenshotsAdded || 0} 张截图；已有资料保持不变${memoConflicts ? `，${memoConflicts} 条同编号差异保留当前版本` : ""}。`,
@@ -586,6 +590,10 @@ export function App() {
     card.style.transform = "none";
 
     try {
+      await document.fonts.ready;
+      await Promise.all(
+        [...card.querySelectorAll("img")].map((image) => image.decode()),
+      );
       const { toBlob } = await import("html-to-image");
       const blob = await toBlob(card, {
         cacheBust: true,
@@ -902,6 +910,22 @@ export function App() {
             </button>
           </div>
 
+          <BookShelf
+            memos={memos}
+            selected={activeBook}
+            covers={settings.bookCovers || {}}
+            onSelect={(key) => {
+              setActiveBook(key);
+              const first = memos.find((memo) => !key || bookKey(memo) === key);
+              if (first) setSelectedId(first.id);
+            }}
+            onCover={(key, url) =>
+              setSettings((current) => ({
+                ...current,
+                bookCovers: { ...current.bookCovers, [key]: url },
+              }))
+            }
+          />
           <div className="searchField">
             <Search size={18} aria-hidden="true" />
             <input
@@ -1047,21 +1071,25 @@ export function App() {
             <fieldset>
               <legend>内容</legend>
               <div className="segmented">
-                {(["quote", "comment", "memo"] as Template[]).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    aria-pressed={template === item}
-                    className={template === item ? "active" : ""}
-                    onClick={() => changeSetting("template", item)}
-                  >
-                    {item === "quote"
-                      ? "金句"
-                      : item === "comment"
-                        ? "评论"
-                        : "Memo"}
-                  </button>
-                ))}
+                {(["quote", "comment", "memo", "editorial"] as Template[]).map(
+                  (item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      aria-pressed={template === item}
+                      className={template === item ? "active" : ""}
+                      onClick={() => changeSetting("template", item)}
+                    >
+                      {item === "quote"
+                        ? "金句"
+                        : item === "comment"
+                          ? "评论"
+                          : item === "editorial"
+                            ? "书页"
+                            : "Memo"}
+                    </button>
+                  ),
+                )}
               </div>
             </fieldset>
             <fieldset>
@@ -1116,6 +1144,12 @@ export function App() {
             </label>
           </div>
 
+          <AppearanceControls
+            value={settings}
+            onChange={(appearance) =>
+              setSettings((current) => ({ ...current, ...appearance }))
+            }
+          />
           {selectedMemo ? (
             <>
               <CardPreview
@@ -1127,6 +1161,8 @@ export function App() {
                 memoCount={memos.length}
                 bookCount={books}
                 memos={memos}
+                appearance={settings}
+                cover={settings.bookCovers?.[bookKey(selectedMemo)]}
               />
               <section className="editorPanel">
                 <div className="editorHeading">

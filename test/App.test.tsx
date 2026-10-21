@@ -115,4 +115,48 @@ describe("App", () => {
     ).memos;
     expect(stored.some((item) => item.id === incoming.id)).toBe(true);
   });
+  test("filters same-title books by author and persists Studio typography", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([
+        memo,
+        {
+          ...memo,
+          id: "other-author",
+          author: "作者乙",
+          quote: "另一本同名书的摘录。",
+        },
+      ]),
+    );
+    render(<App />);
+    await user.click(
+      screen.getByRole("button", { name: "测试书名，作者乙，1 条摘录" }),
+    );
+    expect(screen.getByRole("heading", { name: "1 条结果" })).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: "摘录" }).getAttribute("value") ||
+        (screen.getByRole("textbox", { name: "摘录" }) as HTMLTextAreaElement)
+          .value,
+    ).toBe("另一本同名书的摘录。");
+    await user.click(screen.getByText("字体、布局与背景"));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "字体" }),
+      "serif",
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "文字大小" }),
+      "1.2",
+    );
+    const settings = JSON.parse(
+      window.localStorage.getItem("kindle-cards:settings") || "{}",
+    );
+    expect(settings.font).toBe("serif");
+    expect(settings.fontScale).toBe(1.2);
+    await user.click(screen.getByRole("button", { name: "书页" }));
+    expect(
+      JSON.parse(window.localStorage.getItem("kindle-cards:settings") || "{}")
+        .template,
+    ).toBe("editorial");
+  });
 });

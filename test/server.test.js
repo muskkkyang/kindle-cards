@@ -3,19 +3,12 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { listenForTest as listen } from "./helpers/loopback.js";
 import { createApiApp, readMtpKindleClippings } from "../server.mjs";
 
 const packageJson = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf8"),
 );
-
-async function listen(app) {
-  const server = await new Promise((resolve) => {
-    const instance = app.listen(0, "127.0.0.1", () => resolve(instance));
-  });
-  const address = server.address();
-  return { server, baseUrl: `http://127.0.0.1:${address.port}` };
-}
 
 function close(server) {
   return new Promise((resolve, reject) => {

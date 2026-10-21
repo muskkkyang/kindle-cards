@@ -14,6 +14,8 @@ import {
   getQuoteScale,
   parseMemoDate,
 } from "../lib/cardUtils";
+import { cardFonts } from "../lib/studio";
+import type { CardAppearance } from "../types";
 import type { Memo, SizePreset, Template, Theme } from "../types";
 
 function renderMemoText(text: string) {
@@ -53,11 +55,23 @@ type CardPreviewProps = {
   memoCount: number;
   bookCount: number;
   memos: Memo[];
+  appearance?: CardAppearance;
+  cover?: string;
 };
 
 export const CardPreview = React.forwardRef<HTMLDivElement, CardPreviewProps>(
   (
-    { memo, template, theme, size, memoCount, bookCount, memos },
+    {
+      memo,
+      template,
+      theme,
+      size,
+      memoCount,
+      bookCount,
+      memos,
+      appearance = {},
+      cover,
+    },
     forwardedRef,
   ) => {
     const stageRef = useRef<HTMLDivElement>(null);
@@ -118,9 +132,14 @@ export const CardPreview = React.forwardRef<HTMLDivElement, CardPreviewProps>(
       texts.forEach((text) => {
         text.style.fontSize = "";
       });
-      const sizes = texts.map((text) =>
-        Number.parseFloat(getComputedStyle(text).fontSize),
+      const sizes = texts.map(
+        (text) =>
+          Number.parseFloat(getComputedStyle(text).fontSize) *
+          (appearance.fontScale || 1),
       );
+      texts.forEach((text, index) => {
+        text.style.fontSize = `${sizes[index]}px`;
+      });
       let scale = 1;
       while (main.scrollHeight > main.clientHeight + 1 && scale > 0.38) {
         scale -= 0.025;
@@ -129,7 +148,17 @@ export const CardPreview = React.forwardRef<HTMLDivElement, CardPreviewProps>(
         });
       }
       card.dataset.overflow = String(main.scrollHeight > main.clientHeight + 2);
-    }, [memo, theme, size, template, dimensions.height]);
+    }, [
+      memo,
+      theme,
+      size,
+      template,
+      dimensions.height,
+      appearance.fontScale,
+      appearance.font,
+      appearance.spacing,
+      cover,
+    ]);
 
     return (
       <div
@@ -140,13 +169,31 @@ export const CardPreview = React.forwardRef<HTMLDivElement, CardPreviewProps>(
         <div
           ref={setCardRef}
           data-memo-id={memo.id}
-          className={`shareCard ${theme} ${template} ${size} ${quoteScale}`}
+          className={`shareCard ${theme} ${template} ${size} ${quoteScale} spacing-${appearance.spacing || "balanced"} ${appearance.background ? "photoCard" : ""}`}
           style={{
+            fontFamily: cardFonts[appearance.font || "sans"],
+            textAlign: appearance.align || "left",
             width: dimensions.width,
             height: dimensions.height,
             transform: `scale(${previewScale})`,
           }}
         >
+          {appearance.background && (
+            <img
+              className="cardBackground"
+              src={appearance.background}
+              alt=""
+            />
+          )}
+          {cover && template === "editorial" && (
+            <img className="cardBookCover" src={cover} alt="书籍封面" />
+          )}
+          {template === "editorial" && (
+            <div className="editorialBook">
+              {compactTitle(memo.title)}
+              <small>{memo.author}</small>
+            </div>
+          )}
           {theme === "receipt" ? (
             <>
               <header className="receiptHeader">

@@ -12,6 +12,26 @@ export function imageType(bytes) {
   throw new Error("仅支持 PNG 或 JPEG 截图。");
 }
 
+export function validateAppearance(value) {
+  const checks = {
+    font: (v) => ["sans", "serif", "mono"].includes(v),
+    fontScale: (v) => Number.isFinite(v) && v >= 0.8 && v <= 1.4,
+    spacing: (v) => ["compact", "balanced", "airy"].includes(v),
+    align: (v) => ["left", "center"].includes(v),
+    background: (v) =>
+      v === "" ||
+      (typeof v === "string" &&
+        /^\/api\/media\/[a-f0-9]{64}\.(png|jpg)$/.test(v)),
+  };
+  const appearance = {};
+  for (const [key, valid] of Object.entries(checks)) {
+    if (value[key] === undefined) continue;
+    if (!valid(value[key])) throw new Error("字体、布局或背景格式无效。");
+    appearance[key] = value[key];
+  }
+  return appearance;
+}
+
 export function validateEdit(value) {
   if (!value || typeof value !== "object")
     throw new Error("截图编辑格式无效。");
@@ -49,6 +69,7 @@ export function validateEdit(value) {
     text,
     theme,
     size,
+    ...validateAppearance(value),
   };
 }
 

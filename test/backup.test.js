@@ -108,3 +108,22 @@ test("restore keeps an existing screenshot instead of replacing it", async (cont
   assert.equal(result.screenshotsExisting, 1);
   assert.equal((await current.list())[0].edit.caption, "保留当前版本");
 });
+
+test("legacy v1 backups remain readable after the media format upgrade", async (context) => {
+  const root = await fixture(context);
+  const archive = await createBackupArchive({
+    memos: [],
+    settings,
+    screenshotDirectory: path.join(root, "empty"),
+    appVersion: "1.3.0",
+  });
+  const zip = await JSZip.loadAsync(archive);
+  const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
+  manifest.formatVersion = 1;
+  zip.file("manifest.json", JSON.stringify(manifest));
+  const restored = await restoreBackupArchive({
+    bytes: await zip.generateAsync({ type: "nodebuffer" }),
+    screenshotDirectory: path.join(root, "legacy"),
+  });
+  assert.deepEqual(restored.settings, settings);
+});

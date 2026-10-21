@@ -1,3 +1,4 @@
+import { mediaRouter } from "./src/lib/mediaStore.mjs";
 import express from "express";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -250,6 +251,10 @@ export function createApiApp({
       createScreenshotStore(path.resolve(screenshotDirectory)),
       screenshotOptions,
     ),
+  );
+  app.use(
+    "/api/media",
+    mediaRouter(path.join(path.resolve(screenshotDirectory), "media")),
   );
   app.use(
     "/api/backup",

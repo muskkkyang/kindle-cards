@@ -30,13 +30,16 @@ try {
       foreach ($Candidate in $Folders) {
         foreach ($Item in @($Candidate.Folder.Items())) {
           if ($Item.IsFolder) { continue }
-          $Extension = [IO.Path]::GetExtension([string]$Item.Path)
+          $Extension = [string]$Item.ExtendedProperty("System.FileExtension")
+          if ($Extension -notmatch '^\.(png|jpg|jpeg)$') { $Extension = [IO.Path]::GetExtension([string]$Item.Path) }
           if ($Extension -notmatch '^\.(png|jpg|jpeg)$') { $Extension = [IO.Path]::GetExtension([string]$Item.Name) }
           if ($Extension -notmatch '^\.(png|jpg|jpeg)$' -or ($Candidate.Root -and $Item.Name -notmatch '^screenshot')) { continue }
-          $Identity = "$($Item.Path)|$($Item.Size)|$($Item.ModifyDate)"
+          $ItemBytes = [long]$Item.ExtendedProperty("System.Size")
+          if ($ItemBytes -le 0) { $ItemBytes = [long]$Item.Size }
+          $Identity = "$($Item.Path)|$ItemBytes|$($Item.ModifyDate)"
           $Key = ([BitConverter]::ToString($Sha.ComputeHash($Utf8.GetBytes($Identity)))).Replace('-','').ToLowerInvariant()
           if ($Known.ContainsKey($Key) -or $Files.Count -ge 12 -or $Watch.Elapsed.TotalSeconds -gt 15) { continue }
-          if ([long]$Item.Size -gt 20971520) { $Warnings.Add("$($Item.Name): exceeds 20 MB"); continue }
+          if ($ItemBytes -gt 20971520) { $Warnings.Add("$($Item.Name): exceeds 20 MB"); continue }
           $Subdirectory = Join-Path $DestinationDirectory ([string]$Files.Count)
           New-Item -ItemType Directory -Path $Subdirectory -Force | Out-Null
           $Shell.Namespace($Subdirectory).CopyHere($Item, 4+16+512+1024)
@@ -48,9 +51,9 @@ try {
             $Copied = Get-ChildItem -LiteralPath $Subdirectory -File | Select-Object -First 1
             if (-not $Copied) { continue }
             if ($Copied.Length -eq $Previous -and $Copied.Length -gt 0) { $Stable++ } else { $Stable=0; $Previous=$Copied.Length }
-            if ($Stable -ge 2 -and ([long]$Item.Size -le 0 -or $Copied.Length -eq [long]$Item.Size)) { break }
+            if ($Stable -ge 2 -and ($ItemBytes -le 0 -or $Copied.Length -eq $ItemBytes)) { break }
           }
-          if (-not $Copied -or $Stable -lt 2 -or ([long]$Item.Size -gt 0 -and $Copied.Length -ne [long]$Item.Size)) { throw 'Screenshot copy incomplete. Reconnect Kindle and retry.' }
+          if (-not $Copied -or $Stable -lt 2 -or ($ItemBytes -gt 0 -and $Copied.Length -ne $ItemBytes)) { throw 'Screenshot copy incomplete. Reconnect Kindle and retry.' }
           $Files.Add(@{relativePath="$($Files.Count)/$($Copied.Name)";name=$Copied.Name;sourceKey=$Key})
           $Known[$Key] = $true
         }

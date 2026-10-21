@@ -2,10 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import JSZip from "jszip";
-import { imageType, validateEdit } from "./screenshotStore.mjs";
+import { MEDIA_PATTERN, MAX_MEDIA_BYTES } from "./mediaStore.mjs";
+import {
+  imageType,
+  validateAppearance,
+  validateEdit,
+} from "./screenshotStore.mjs";
 
 export const BACKUP_FORMAT = "kindle-cards-backup";
-export const BACKUP_FORMAT_VERSION = 1;
+export const BACKUP_FORMAT_VERSION = 2;
 export const MAX_BACKUP_BYTES = 256 * 1024 * 1024;
 const MAX_RESTORED_BYTES = 512 * 1024 * 1024;
 const MAX_BACKUP_FILES = 10_000;
@@ -35,11 +40,29 @@ function validMemos(value) {
 }
 
 function validSettings(value) {
+  if (!value || typeof value !== "object") return false;
+  try {
+    validateAppearance(value);
+    if (value.bookCovers !== undefined) {
+      if (
+        !value.bookCovers ||
+        typeof value.bookCovers !== "object" ||
+        Array.isArray(value.bookCovers)
+      )
+        return false;
+      for (const [key, url] of Object.entries(value.bookCovers)) {
+        if (key.length > 1000 || !url) return false;
+        validateAppearance({ background: url });
+      }
+    }
+  } catch {
+    return false;
+  }
   return (
     value &&
     typeof value === "object" &&
     !Array.isArray(value) &&
-    ["quote", "comment", "memo"].includes(value.template) &&
+    ["quote", "comment", "memo", "editorial"].includes(value.template) &&
     ["paper", "light", "dark", "receipt"].includes(value.theme) &&
     ["landscape", "square", "portrait", "wide", "phone"].includes(value.size)
   );
@@ -68,6 +91,19 @@ async function screenshotFiles(directory) {
         bytes: await fs.readFile(path.join(folder, file.name)),
       });
     }
+  }
+  let media = [];
+  try {
+    media = await fs.readdir(path.join(directory, "media"));
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  for (const filename of media) {
+    if (MEDIA_PATTERN.test(filename))
+      result.push({
+        name: `media/${filename}`,
+        bytes: await fs.readFile(path.join(directory, "media", filename)),
+      });
   }
   return result;
 }
@@ -124,7 +160,7 @@ function validManifest(value) {
   return (
     value &&
     value.format === BACKUP_FORMAT &&
-    value.formatVersion === BACKUP_FORMAT_VERSION &&
+    [1, BACKUP_FORMAT_VERSION].includes(value.formatVersion) &&
     Array.isArray(value.files) &&
     value.files.length <= MAX_BACKUP_FILES
   );
@@ -181,18 +217,22 @@ export async function restoreBackupArchive({ bytes, screenshotDirectory }) {
       !(
         item.path === "memos.json" ||
         item.path === "settings.json" ||
-        screenshotFilePattern.test(item.path)
+        screenshotFilePattern.test(item.path) ||
+        (item.path.startsWith("media/") &&
+          MEDIA_PATTERN.test(item.path.slice(6)))
       )
     )
       throw new Error("备份清单包含无效文件。");
     const fileLimit =
       item.path === "memos.json"
         ? 30 * 1024 * 1024
-        : item.path === "settings.json"
-          ? 1024 * 1024
-          : item.path.includes("/original.")
-            ? 20 * 1024 * 1024
-            : 2 * 1024 * 1024;
+        : item.path.startsWith("media/")
+          ? MAX_MEDIA_BYTES
+          : item.path === "settings.json"
+            ? 1024 * 1024
+            : item.path.includes("/original.")
+              ? 20 * 1024 * 1024
+              : 2 * 1024 * 1024;
     if (item.bytes > fileLimit)
       throw new Error(`备份文件 ${item.path} 超过安全上限。`);
     const entry = zip.file(item.path);
@@ -254,6 +294,31 @@ export async function restoreBackupArchive({ bytes, screenshotDirectory }) {
       throw new Error("备份中的截图文件类型无效。");
   }
 
+  const media = [...validated].filter(([name]) => name.startsWith("media/"));
+  for (const [name, content] of media) {
+    const filename = name.slice(6);
+    if (filename !== `${digest(content)}.${imageType(content)}`)
+      throw new Error("备份图片未通过内容校验。");
+    try {
+      const existing = await fs.readFile(path.join(screenshotDirectory, name));
+      if (!existing.equals(content))
+        throw new Error("已有图片校验失败，未覆盖资料。");
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  for (const [name, content] of media) {
+    await fs.mkdir(path.join(screenshotDirectory, "media"), {
+      recursive: true,
+    });
+    try {
+      await fs.writeFile(path.join(screenshotDirectory, name), content, {
+        flag: "wx",
+      });
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+    }
+  }
   await fs.mkdir(screenshotDirectory, { recursive: true });
   let screenshotsAdded = 0;
   let screenshotsExisting = 0;

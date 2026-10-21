@@ -2220,3 +2220,221 @@ select:focus-visible {
     font-size: 10px;
   }
 }
+
+/* Shelf and Studio controls share the existing quiet product vocabulary. */
+.bookShelf {
+  min-width: 0;
+  flex: 0 0 auto;
+}
+.bookShelfHeading,
+.bookCoverAction {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.bookShelfHeading strong span {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+.bookShelfList {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 6px 3px 10px;
+}
+.shelfBook {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  flex: 0 0 104px;
+  min-width: 0;
+  padding: 6px;
+  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+}
+.shelfBook.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.shelfBook:hover {
+  background: var(--surface-muted);
+}
+.shelfBook img,
+.bookPlaceholder {
+  width: 90px;
+  height: 114px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+.bookPlaceholder {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  color: var(--ink);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  font-family: "SimSun", serif;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.shelfBook strong {
+  font-size: 12px;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shelfBook span:not(.bookPlaceholder),
+.shelfBook small {
+  font-size: 11px;
+  color: var(--ink-soft);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bookCoverAction > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bookCoverAction label {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.appearanceControls {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  font-size: 13px;
+}
+.appearanceControls summary {
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.appearanceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 14px;
+}
+.appearanceGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.appearanceGrid select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface);
+  padding: 6px;
+}
+.backgroundUpload {
+  grid-column: 1 / -1;
+}
+.backgroundUpload input {
+  max-width: 100%;
+  font-size: 12px;
+}
+.shareCard > .cardBackground {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.shareCard.photoCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(255, 255, 250, 0.92);
+}
+.shareCard.photoCard > .cardBackground {
+  z-index: 0;
+}
+.shareCard.photoCard.dark::before {
+  background: rgba(20, 22, 18, 0.88);
+}
+.shareCard > :not(.cardBackground) {
+  position: relative;
+  z-index: 2;
+}
+.shareCard > .cardBookCover {
+  height: 100px;
+  width: 70px;
+  object-fit: cover;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+.editorialBook {
+  font-family: "SimSun", serif;
+  font-size: 24px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+.editorialBook small {
+  display: block;
+  font-family: inherit;
+  font-size: 15px;
+  margin-top: 6px;
+}
+.shareCard.editorial .quoteMark {
+  display: none;
+}
+.shareCard.editorial .cardHeader {
+  min-height: 32px;
+}
+.shareCard.editorial .cardIdentity {
+  font-size: 14px;
+  flex-direction: row;
+  width: 100%;
+  justify-content: space-between;
+}
+.shareCard.editorial .cardIdentity strong,
+.shareCard.editorial .cardIdentity span {
+  font-size: 14px;
+}
+.shareCard.spacing-compact {
+  padding: 38px 40px;
+}
+.shareCard.spacing-airy {
+  padding: 96px 84px;
+}
+@media (max-width: 1100px) {
+  .controlDeck {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .controlDeck .sizeField {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-height: 850px) and (min-width: 821px) {
+  .bookShelfList {
+    max-height: 145px;
+  }
+  .shelfBook img,
+  .bookPlaceholder {
+    height: 70px;
+  }
+}
+
+.shareCard.photoCard .sourceLine,
+.shareCard.photoCard .cardFooter strong {
+  opacity: 1;
+}
+.shareCard.photoCard .cardFooter {
+  color: inherit;
+}
