@@ -1,6 +1,11 @@
+import { AppearanceControls } from "./components/AppearanceControls";
+import { BookShelf } from "./components/BookShelf";
+import { bookKey, groupBooks, mergeRestoredSettings } from "./lib/studio";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
+  Images,
+  ChevronRight,
   Check,
   CircleAlert,
   Copy,
@@ -96,9 +101,12 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function App() {
-  const [workspaceView, setWorkspaceView] = useState<"memos" | "screenshots">(
-    "memos",
-  );
+  const [workspaceView, setWorkspaceView] = useState<
+    "shelf" | "memos" | "screenshots"
+  >("shelf");
+  const [shelfQuery, setShelfQuery] = useState("");
+  const [recentBookKeys, setRecentBookKeys] = useState<string[]>([]);
+  const dataMenuRef = useRef<HTMLDetailsElement>(null);
   const [screenshotCount, setScreenshotCount] = useState(0);
   const initialData = useMemo(() => loadMemos(), []);
   const [memos, setMemos] = useState<Memo[]>(initialData.memos);
@@ -107,6 +115,7 @@ export function App() {
   );
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("");
+  const [activeBook, setActiveBook] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [status, setStatus] = useState<AppStatus>(() =>
@@ -299,10 +308,7 @@ export function App() {
     );
   }, [memos]);
 
-  const books = useMemo(
-    () => new Set(memos.map((memo) => memo.title)).size,
-    [memos],
-  );
+  const books = useMemo(() => groupBooks(memos).length, [memos]);
   const recentCutoff = useMemo(() => getRecentCutoff(memos), [memos]);
 
   const filtered = useMemo(() => {
@@ -317,6 +323,7 @@ export function App() {
       ]
         .join(" ")
         .toLocaleLowerCase("zh-CN");
+      if (activeBook && bookKey(memo) !== activeBook) return false;
       if (needle && !haystack.includes(needle)) return false;
       if (activeTag && !memo.tags.includes(activeTag)) return false;
       if (filterMode === "untagged" && memo.tags.length > 0) return false;
@@ -324,7 +331,7 @@ export function App() {
         return (Date.parse(memo.importedAt || "") || 0) === recentCutoff;
       return true;
     });
-  }, [activeTag, filterMode, memos, query, recentCutoff]);
+  }, [activeBook, activeTag, filterMode, memos, query, recentCutoff]);
 
   function persist(nextMemos: Memo[]) {
     memosRef.current = nextMemos;
@@ -400,7 +407,9 @@ export function App() {
       const nextMemos = [...currentById.values()];
       const saveResult = persist(nextMemos);
       if (!saveResult.ok) throw new Error(saveResult.message);
-      setSettings(normalizeSettings(payload.settings));
+      setSettings((current) =>
+        mergeRestoredSettings(current, normalizeSettings(payload.settings)),
+      );
       setStatus({
         tone: memoConflicts ? "neutral" : "success",
         text: `恢复完成：新增 ${memosAdded} 条摘录、${payload.screenshotsAdded || 0} 张截图；已有资料保持不变${memoConflicts ? `，${memoConflicts} 条同编号差异保留当前版本` : ""}。`,
@@ -586,6 +595,10 @@ export function App() {
     card.style.transform = "none";
 
     try {
+      await document.fonts.ready;
+      await Promise.all(
+        [...card.querySelectorAll("img")].map((image) => image.decode()),
+      );
       const { toBlob } = await import("html-to-image");
       const blob = await toBlob(card, {
         cacheBust: true,
@@ -722,11 +735,108 @@ export function App() {
           ? RefreshCw
           : HardDrive;
 
+  const shelfContent = (
+    <BookShelf
+      expanded={workspaceView === "shelf"}
+      search={shelfQuery}
+      recentKeys={recentBookKeys}
+      memos={memos}
+      selected={activeBook}
+      covers={settings.bookCovers || {}}
+      onAutoCovers={(incoming) => {
+        if (!Object.keys(incoming).length) return;
+        setSettings((current) => ({
+          ...current,
+          bookCovers: { ...incoming, ...current.bookCovers },
+        }));
+      }}
+      onSelect={(key) => {
+        setActiveBook(key);
+        setWorkspaceView("memos");
+        setMobileView("library");
+        if (key)
+          setRecentBookKeys((keys) =>
+            [key, ...keys.filter((value) => value !== key)].slice(0, 3),
+          );
+        const first = memos.find((memo) => !key || bookKey(memo) === key);
+        if (first) setSelectedId(first.id);
+      }}
+      onCover={(key, url) =>
+        setSettings((current) => ({
+          ...current,
+          bookCovers: { ...current.bookCovers, [key]: url },
+        }))
+      }
+    />
+  );
+
   return (
     <main
       className={`appShell view-${workspaceView} mobile-${mobileView}`}
       aria-busy={isSyncing || isExporting || isManagingData}
     >
+      <aside className="appSidebar" aria-label="主导航">
+        <div className="sidebarBrand">
+          <span className="brandIcon">
+            <BookOpen size={22} aria-hidden="true" />
+          </span>
+          <div>
+            <strong>Kindle Cards</strong>
+            <small>阅读与灵感收藏</small>
+          </div>
+        </div>
+        <nav aria-label="资料导航">
+          <button
+            aria-current={workspaceView === "shelf" ? "page" : undefined}
+            onClick={() => setWorkspaceView("shelf")}
+          >
+            <BookOpen size={20} aria-hidden="true" />
+            我的书架
+          </button>
+          <button
+            aria-current={workspaceView === "memos" ? "page" : undefined}
+            onClick={() => {
+              setWorkspaceView("memos");
+              setActiveBook("");
+              setMobileView("library");
+            }}
+          >
+            <Library size={20} aria-hidden="true" />
+            全部摘录
+          </button>
+          <button
+            aria-current={workspaceView === "screenshots" ? "page" : undefined}
+            onClick={() => setWorkspaceView("screenshots")}
+          >
+            <Images size={20} aria-hidden="true" />
+            截图
+          </button>
+        </nav>
+        <div className="sidebarTools">
+          <button
+            disabled={isSyncing || isExporting}
+            onClick={() => void syncKindle()}
+          >
+            <RefreshCw size={18} aria-hidden="true" />
+            连接与同步
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+          <button
+            onClick={() => {
+              if (dataMenuRef.current) {
+                dataMenuRef.current.open = !dataMenuRef.current.open;
+                if (dataMenuRef.current.open)
+                  dataMenuRef.current.querySelector("summary")?.focus();
+              }
+            }}
+          >
+            <HardDrive size={18} aria-hidden="true" />
+            备份与恢复
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+          <small>已导入资料可离线查看</small>
+        </div>
+      </aside>
       <header className="appHeader">
         <div className="brandLockup">
           <span className="brandIcon" aria-hidden="true">
@@ -734,11 +844,11 @@ export function App() {
           </span>
           <div>
             <h1>Kindle Cards</h1>
-            <p>本地阅读摘录工作台</p>
+            <p>阅读与灵感收藏</p>
           </div>
         </div>
 
-        <div className="headerActions" hidden={workspaceView !== "memos"}>
+        <div className="headerActions">
           <button
             className="actionButton secondary"
             onClick={syncKindle}
@@ -799,8 +909,8 @@ export function App() {
               </button>
             </div>
           </details>
-          <details className="importMore dataMore">
-            <summary>数据</summary>
+          <details ref={dataMenuRef} className="importMore dataMore">
+            <summary>备份与恢复</summary>
             <div className="importPopover dataPopover">
               <strong>完整备份与恢复</strong>
               <p>备份包含摘录、本地修改、设置、截图原图和编辑历史。</p>
@@ -836,7 +946,6 @@ export function App() {
 
       <section
         className={`statusStrip ${status.tone}`}
-        hidden={workspaceView !== "memos"}
         role={statusRole}
         aria-live="polite"
         aria-atomic="true"
@@ -864,6 +973,12 @@ export function App() {
 
       <nav className="workspaceTabs" aria-label="阅读资料类型">
         <button
+          aria-pressed={workspaceView === "shelf"}
+          onClick={() => setWorkspaceView("shelf")}
+        >
+          书架
+        </button>
+        <button
           aria-pressed={workspaceView === "memos"}
           onClick={() => setWorkspaceView("memos")}
         >
@@ -876,6 +991,35 @@ export function App() {
           截图 <span>{screenshotCount}</span>
         </button>
       </nav>
+      <section
+        className="shelfPage"
+        hidden={workspaceView !== "shelf"}
+        aria-label="我的书架"
+      >
+        <div className="shelfPageHeading">
+          <h2>我的书架</h2>
+          <p>摘录中的书籍 · {books} 本</p>
+        </div>
+        <div className="searchField">
+          <Search size={20} aria-hidden="true" />
+          <input
+            aria-label="搜索书架"
+            placeholder="搜索书名、作者或摘录"
+            value={shelfQuery}
+            onChange={(event) => setShelfQuery(event.target.value)}
+          />
+        </div>
+        {workspaceView === "shelf" && shelfContent}
+        {!memos.length && (
+          <div className="emptyState">
+            <BookOpen size={36} aria-hidden="true" />
+            <h3>从第一本书的摘录开始</h3>
+            <p>
+              连接 Kindle 自动同步，或使用上方导入文件。已有资料始终保存在本机。
+            </p>
+          </div>
+        )}
+      </section>
       <ScreenshotWorkspace
         active={workspaceView === "screenshots"}
         books={[...new Set(memos.map((memo) => memo.title))]}
@@ -902,6 +1046,7 @@ export function App() {
             </button>
           </div>
 
+          {workspaceView === "memos" && shelfContent}
           <div className="searchField">
             <Search size={18} aria-hidden="true" />
             <input
@@ -917,7 +1062,7 @@ export function App() {
               [
                 ["all", "全部"],
                 ["recent", "最近导入"],
-                ["untagged", "未整理"],
+                ["untagged", "未加标签"],
               ] as [FilterMode, string][]
             ).map(([value, label]) => (
               <button
@@ -1022,46 +1167,39 @@ export function App() {
           </div>
         </section>
 
-        <aside className="studioPane" aria-label="卡片工作台">
+        <aside className="studioPane" aria-label="卡片创作">
           <div className="studioHeading">
             <div>
-              <p>卡片工作台</p>
+              <p>卡片创作</p>
               <h2>
                 {selectedMemo ? compactTitle(selectedMemo.title) : "等待摘录"}
               </h2>
             </div>
-            <span>
-              {sizePresets[size].width} ×{" "}
-              {
-                getCardDimensions(
-                  size,
-                  template,
-                  selectedMemo?.quote || "",
-                  selectedMemo?.comment || "",
-                ).height
-              }
-            </span>
           </div>
 
           <div className="controlDeck">
             <fieldset>
               <legend>内容</legend>
               <div className="segmented">
-                {(["quote", "comment", "memo"] as Template[]).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    aria-pressed={template === item}
-                    className={template === item ? "active" : ""}
-                    onClick={() => changeSetting("template", item)}
-                  >
-                    {item === "quote"
-                      ? "金句"
-                      : item === "comment"
-                        ? "评论"
-                        : "Memo"}
-                  </button>
-                ))}
+                {(["quote", "comment", "memo", "editorial"] as Template[]).map(
+                  (item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      aria-pressed={template === item}
+                      className={template === item ? "active" : ""}
+                      onClick={() => changeSetting("template", item)}
+                    >
+                      {item === "quote"
+                        ? "金句"
+                        : item === "comment"
+                          ? "评论"
+                          : item === "editorial"
+                            ? "书页"
+                            : "Memo"}
+                    </button>
+                  ),
+                )}
               </div>
             </fieldset>
             <fieldset>
@@ -1116,6 +1254,12 @@ export function App() {
             </label>
           </div>
 
+          <AppearanceControls
+            value={settings}
+            onChange={(appearance) =>
+              setSettings((current) => ({ ...current, ...appearance }))
+            }
+          />
           {selectedMemo ? (
             <>
               <CardPreview
@@ -1127,6 +1271,8 @@ export function App() {
                 memoCount={memos.length}
                 bookCount={books}
                 memos={memos}
+                appearance={settings}
+                cover={settings.bookCovers?.[bookKey(selectedMemo)]}
               />
               <section className="editorPanel">
                 <div className="editorHeading">

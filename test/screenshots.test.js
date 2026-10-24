@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { listenForTest } from "./helpers/loopback.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -152,8 +153,7 @@ test("screenshot HTTP workflow uploads, edits, recognizes, reloads and serves or
       ocr: async () => ({ text: "识别出的文字", language: "zh-Hans" }),
     },
   });
-  const server = app.listen(0, "127.0.0.1");
-  await new Promise((resolve) => server.once("listening", resolve));
+  const { server } = await listenForTest(app);
   t.after(() => new Promise((resolve) => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}/api/screenshots`;
   const upload = await fetch(`${base}/upload?name=test.png`, {

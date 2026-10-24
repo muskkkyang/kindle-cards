@@ -213,7 +213,12 @@ export function saveMemos(
 }
 
 function isTemplate(value: unknown): value is Template {
-  return value === "quote" || value === "comment" || value === "memo";
+  return (
+    value === "quote" ||
+    value === "comment" ||
+    value === "memo" ||
+    value === "editorial"
+  );
 }
 
 function isTheme(value: unknown): value is Theme {
@@ -254,9 +259,36 @@ export function normalizeSettings(value: unknown): AppSettings {
       : DEFAULT_SETTINGS.template,
     theme: isTheme(value.theme) ? value.theme : DEFAULT_SETTINGS.theme,
     size: isSize(value.size) ? value.size : DEFAULT_SETTINGS.size,
+    font: value.font === "serif" || value.font === "mono" ? value.font : "sans",
+    fontScale:
+      typeof value.fontScale === "number" && Number.isFinite(value.fontScale)
+        ? Math.min(1.4, Math.max(0.8, value.fontScale))
+        : 1,
+    spacing:
+      value.spacing === "compact" || value.spacing === "airy"
+        ? value.spacing
+        : "balanced",
+    align: value.align === "center" ? "center" : "left",
+    background: mediaUrl(value.background),
+    bookCovers: isRecord(value.bookCovers)
+      ? Object.fromEntries(
+          Object.entries(value.bookCovers)
+            .filter(
+              ([key, url]) => key.length <= 1000 && Boolean(mediaUrl(url)),
+            )
+            .map(([key, url]) => [key, mediaUrl(url)]),
+        )
+      : {},
   };
 }
 
 export function saveSettings(settings: AppSettings) {
   return writeStorage(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function mediaUrl(value: unknown) {
+  return typeof value === "string" &&
+    /^\/api\/media\/[a-f0-9]{64}\.(png|jpg)$/.test(value)
+    ? value
+    : "";
 }

@@ -1,3 +1,4 @@
+import { AppearanceControls } from "./AppearanceControls";
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Download, ScanText, RefreshCw } from "lucide-react";
 import {
@@ -271,6 +272,7 @@ function ScreenshotEditor({
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [ready, setReady] = useState(false);
+  const [renderReady, setRenderReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const editRef = useRef(edit);
@@ -292,6 +294,7 @@ function ScreenshotEditor({
       );
       return;
     }
+    setRenderReady(false);
     editRef.current = next;
     dirtyRef.current = true;
     setEdit(next);
@@ -346,8 +349,33 @@ function ScreenshotEditor({
     };
   }, [item.url]);
   useEffect(() => {
-    if (ready && imageRef.current && canvasRef.current)
-      renderScreenshotCard(canvasRef.current, imageRef.current, edit);
+    let disposed = false;
+    if (!ready) return;
+    void Promise.all([
+      document.fonts?.ready,
+      edit.background
+        ? loadScreenshotImage(edit.background)
+        : Promise.resolve(undefined),
+    ])
+      .then(([, background]) => {
+        if (disposed || !imageRef.current || !canvasRef.current) return;
+        renderScreenshotCard(
+          canvasRef.current,
+          imageRef.current,
+          edit,
+          background,
+        );
+        setRenderReady(true);
+      })
+      .catch((error) => {
+        if (!disposed) {
+          setRenderReady(false);
+          setMessage(error.message);
+        }
+      });
+    return () => {
+      disposed = true;
+    };
   }, [edit, ready]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
@@ -502,6 +530,10 @@ function ScreenshotEditor({
             </select>
           </label>
         </div>
+        <AppearanceControls
+          value={edit}
+          onChange={(appearance) => change({ ...edit, ...appearance })}
+        />
         <details className="screenshotOcr">
           <summary>识别与整理文字</summary>
           <button
@@ -571,7 +603,7 @@ function ScreenshotEditor({
           </button>
           <button
             className="actionButton primary"
-            disabled={busy || !ready}
+            disabled={busy || !renderReady}
             onClick={() =>
               void action(async () => {
                 await save(edit);

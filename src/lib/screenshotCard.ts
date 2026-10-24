@@ -1,4 +1,6 @@
-export type ScreenshotEdit = {
+import { cardFonts } from "./studio";
+import type { CardAppearance } from "../types";
+export type ScreenshotEdit = CardAppearance & {
   crop: { x: number; y: number; width: number; height: number };
   book: string;
   caption: string;
@@ -46,6 +48,7 @@ export function renderScreenshotCard(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
   edit: ScreenshotEdit,
+  background?: HTMLImageElement,
 ) {
   const width = edit.size === "phone" ? 1080 : 1200;
   const baseHeight =
@@ -56,16 +59,20 @@ export function renderScreenshotCard(
         : edit.size === "square"
           ? 1200
           : 800;
-  const padding = 76;
+  const padding =
+    edit.spacing === "compact" ? 48 : edit.spacing === "airy" ? 108 : 76;
+  const fontSize = 30 * (edit.fontScale || 1);
+  const lineHeight = fontSize * 1.55;
+  const font = `${fontSize}px ${cardFonts[edit.font || "sans"]}`;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("浏览器无法生成图片。");
-  ctx.font = '30px "Microsoft YaHei", sans-serif';
+  ctx.font = font;
   const lines = wrapLines(
     ctx,
     [edit.book, edit.caption].filter(Boolean).join("\n"),
     width - padding * 2,
   );
-  const footerHeight = lines.length * 46 + 85;
+  const footerHeight = lines.length * lineHeight + 85;
   const height =
     edit.size === "phone"
       ? baseHeight
@@ -79,6 +86,25 @@ export function renderScreenshotCard(
       ? "#f4f0e7"
       : "#ffffff";
   ctx.fillRect(0, 0, width, height);
+  if (background) {
+    const bgScale = Math.max(
+      width / background.naturalWidth,
+      height / background.naturalHeight,
+    );
+    const bgWidth = background.naturalWidth * bgScale,
+      bgHeight = background.naturalHeight * bgScale;
+    ctx.drawImage(
+      background,
+      (width - bgWidth) / 2,
+      (height - bgHeight) / 2,
+      bgWidth,
+      bgHeight,
+    );
+    ctx.fillStyle = dark ? "rgba(20,22,18,0.88)" : "rgba(255,255,250,0.92)";
+    ctx.fillRect(0, 0, width, height);
+  }
+  if (height - padding - footerHeight < 180)
+    throw new Error("批注过长，卡片无法容纳。请缩短批注或改用其他比例。");
   const crop = edit.crop;
   const sx = (image.naturalWidth * crop.x) / 100,
     sy = (image.naturalHeight * crop.y) / 100;
@@ -101,10 +127,16 @@ export function renderScreenshotCard(
     dh,
   );
   ctx.fillStyle = dark ? "#f3f1e9" : "#353831";
-  ctx.font = '30px "Microsoft YaHei", sans-serif';
+  ctx.font = font;
+  ctx.textAlign = edit.align || "left";
   lines.forEach((line, i) =>
-    ctx.fillText(line, padding, height - footerHeight + 30 + i * 46),
+    ctx.fillText(
+      line,
+      edit.align === "center" ? width / 2 : padding,
+      height - footerHeight + fontSize + i * lineHeight,
+    ),
   );
+  ctx.textAlign = "left";
   ctx.fillStyle = dark ? "#b4b4a8" : "#878779";
   ctx.font = '18px "Microsoft YaHei", sans-serif';
   ctx.fillText("Kindle Cards", padding, height - 32);

@@ -19,6 +19,12 @@ describe("phone cards and receipt settings", () => {
       template: "quote",
       theme: "receipt",
       size: "phone",
+      font: "sans",
+      fontScale: 1,
+      spacing: "balanced",
+      align: "left",
+      background: "",
+      bookCovers: {},
     });
   });
 });
