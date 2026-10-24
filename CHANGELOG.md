@@ -2,9 +2,11 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 和 [Semantic Versioning](https://semver.org/)。
 
-## [Unreleased]
+## [1.4.0] - 2026-10-24
 
 ### Added
+
+- 书架作为默认首页，支持搜索、网格/列表切换及从书籍进入摘录和卡片创作。
 
 - 从连接的 Kindle 只读提取可访问 EPUB、MOBI、AZW、AZW3 的内嵌封面，自动补齐缺封面书籍；保留已有封面和手动上传，无法可靠匹配或不支持的格式不自动套图。
 
@@ -15,6 +17,9 @@
 - 保留 TypeScript 5.9：当前 typescript-eslint 不支持 TypeScript 7；保留 jsdom 29，避免提高现有 Node 24 开发环境的最低补丁版本要求。
 
 ### Fixed
+
+- 摘录页封面保持原比例，书名与作者分开呈现；创作区移除冗余像素数字。
+- 更新 body-parser 与 zod 锁定依赖，发布检查时依赖审计为 0 漏洞。
 
 - 补齐真实 Kindle 的 KFX 封面适配，修复 Windows PowerShell 5 目标数组读取、原始摘录标题头和含省略号文件名的匹配/读取；未受保护且有明确封面资源的 KFX 可自动补图。
 - 修复长文件名撑宽截图缩略图按钮造成的横向裁切，横图与竖图均完整适配缩略框。
