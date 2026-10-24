@@ -1,4 +1,5 @@
 import { mediaRouter } from "./src/lib/mediaStore.mjs";
+import { kindleCoverRouter } from "./src/lib/kindleCovers.mjs";
 import express from "express";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -186,6 +187,7 @@ export function createApiApp({
   screenshotDirectory = process.env.KINDLE_CARDS_DATA_DIR ||
     path.join(projectRoot, "data", "screenshots"),
   screenshotOptions = {},
+  coverOptions = {},
 } = {}) {
   const app = express();
   app.disable("x-powered-by");
@@ -255,6 +257,13 @@ export function createApiApp({
   app.use(
     "/api/media",
     mediaRouter(path.join(path.resolve(screenshotDirectory), "media")),
+  );
+  app.use(
+    "/api/kindle-covers",
+    kindleCoverRouter(
+      path.join(path.resolve(screenshotDirectory), "media"),
+      coverOptions,
+    ),
   );
   app.use(
     "/api/backup",

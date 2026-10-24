@@ -29,6 +29,8 @@ Kindle Cards brings Kindle highlights, notes, and screenshots into one focused l
 
 While the page is visible, Kindle Cards checks the device and content revision every five seconds. It performs an incremental merge only when `My Clippings.txt` has changed.
 
+The development branch fills missing bookshelf covers from readable EPUB, MOBI, AZW, AZW3, and unprotected KFX cover resources on a connected Kindle. It processes pending books in batches while the page is visible, checks every minute when idle, and supports manual retry. Matching preserves existing covers and leaves ambiguous editions for manual selection. Windows MTP verification on 2026-10-23 filled 19 of 21 books; books without a readable cover resource still support manual upload. Imported covers stay local and are included in complete backups. See [verification and limits](docs/2026-10-23-cover-thumbnails-fix.md). This feature has not been released.
+
 ## Built for what happens after reading
 
 | Reading library                                                                              | Card studio                                                   |

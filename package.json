@@ -34,7 +34,9 @@
   },
   "dependencies": {
     "express": "^5.2.1",
+    "fast-xml-parser": "^5.11.2",
     "html-to-image": "^1.11.13",
+    "ion-js": "^5.2.1",
     "jszip": "^3.10.2",
     "lucide-react": "^1.48.0",
     "react": "19.3.1",

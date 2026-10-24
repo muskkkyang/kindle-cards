@@ -124,9 +124,10 @@ $ExtractRoot = Join-Path ([IO.Path]::GetTempPath()) "kindle-cards-node-$([guid]:
 
 try {
   New-Item -ItemType Directory -Path $StagingRoot -Force | Out-Null
-  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js", "scripts/read-kindle-mtp.ps1", "src/lib/screenshotStore.mjs", "src/lib/kindleScreenshots.mjs", "src/lib/screenshotApi.mjs", "src/lib/backupArchive.mjs", "src/lib/backupApi.mjs", "src/lib/mediaStore.mjs", "scripts/scan-kindle-screenshots.ps1", "scripts/ocr-screenshot.ps1")) {
+  foreach ($File in @("package.json", "package-lock.json", "server.mjs", "src/lib/kindleParser.js", "scripts/read-kindle-mtp.ps1", "src/lib/screenshotStore.mjs", "src/lib/kindleScreenshots.mjs", "src/lib/screenshotApi.mjs", "src/lib/backupArchive.mjs", "src/lib/backupApi.mjs", "src/lib/mediaStore.mjs", "src/lib/bookCover.mjs", "src/lib/kindleCovers.mjs", "scripts/scan-kindle-books.ps1", "scripts/scan-kindle-screenshots.ps1", "scripts/ocr-screenshot.ps1")) {
     Copy-RequiredFile -RelativePath $File -DestinationRoot $StagingRoot
   }
+  Copy-RequiredFile -RelativePath "src/lib/kfxCover.mjs" -DestinationRoot $StagingRoot
   Copy-Item -LiteralPath (Join-Path $ProjectRoot "dist") -Destination (Join-Path $StagingRoot "dist") -Recurse -Force
 
   Push-Location $StagingRoot

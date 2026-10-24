@@ -35,7 +35,10 @@ Local Express API -> content revision -> Kindle parser -> React workspace -> loc
 - MTP/WPD 文件由 `scripts/read-kindle-mtp.ps1` 通过 Windows Shell 复制到唯一临时目录，读取后立即清理，不返回设备路径。
 - 生产模式提供 Vite 构建后的静态文件，开发模式挂载 Vite 中间件。
 - `/api/screenshots` 提供截图扫描、导入、编辑、原图读取和 Windows OCR。
+- `POST /api/kindle-covers/scan` 读取可访问的 EPUB/MOBI/AZW/AZW3 内嵌封面，以及 KFX 元数据明确引用的未受保护图片。`bookCover.mjs` 负责格式解析及原始摘录头/作者匹配，`kfxCover.mjs` 使用 ion-js 有界解码容器元数据，`kindleCovers.mjs` 负责只读扫描与 HTTP；Windows MTP 使用 `scripts/scan-kindle-books.ps1` 生成临时副本。不解密受保护资源，系统缩略图缓存的通用关联不在当前范围。
+- 书架页面可见时，有待处理书籍便继续分批扫描，空闲每分钟检查，支持手动重试。MTP 优先筛选缺封面书籍对应的文件，再读取大小等属性；按文件指纹避免重复复制，单批最多 8 本、单本 64 MB。封面复用 `storeMedia` 的 5 MB 上限与内容寻址。手动封面不会被异步扫描结果覆盖。
 - `/api/backup/export` 生成完整 ZIP；`/api/backup/restore` 在校验格式、大小和 SHA-256 后增量恢复截图，并把摘录与设置交给浏览器合并。
+- 备份媒体集合来自当前设置、书籍封面和归档内每个截图编辑版本，排除无引用图片，但不清理本地文件；引用图片无法读取时导出失败，避免静默缺图。保留 v1/v2 读取和 256 MiB 压缩包上限。
 
 ### Windows launcher
 

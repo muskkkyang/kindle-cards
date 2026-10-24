@@ -68,14 +68,23 @@ function validSettings(value) {
   );
 }
 
-async function screenshotFiles(directory) {
+async function screenshotFiles(directory, settings) {
   const result = [];
+  const referencedMedia = new Set();
+  const addReference = (url) => {
+    if (!url) return;
+    const filename = url.replace(/^\/api\/media\//u, "");
+    if (!MEDIA_PATTERN.test(filename)) throw new Error("备份图片引用无效。");
+    referencedMedia.add(filename);
+  };
+  addReference(settings.background);
+  Object.values(settings.bookCovers || {}).forEach(addReference);
   let entries;
   try {
     entries = await fs.readdir(directory, { withFileTypes: true });
   } catch (error) {
-    if (error.code === "ENOENT") return result;
-    throw error;
+    if (error.code === "ENOENT") entries = [];
+    else throw error;
   }
   for (const entry of entries) {
     if (!entry.isDirectory() || !/^[a-f0-9]{64}$/u.test(entry.name)) continue;
@@ -86,24 +95,31 @@ async function screenshotFiles(directory) {
         !/^(?:original\.(?:png|jpg)|\d{12}\.json)$/u.test(file.name)
       )
         continue;
+      const bytes = await fs.readFile(path.join(folder, file.name));
+      if (file.name.endsWith(".json")) {
+        try {
+          addReference(JSON.parse(bytes.toString("utf8")).edit?.background);
+        } catch (error) {
+          throw new Error("截图编辑历史无法读取，未生成不完整备份。", {
+            cause: error,
+          });
+        }
+      }
       result.push({
         name: `screenshots/${entry.name}/${file.name}`,
-        bytes: await fs.readFile(path.join(folder, file.name)),
+        bytes,
       });
     }
   }
-  let media = [];
-  try {
-    media = await fs.readdir(path.join(directory, "media"));
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
-  }
-  for (const filename of media) {
-    if (MEDIA_PATTERN.test(filename))
+  for (const filename of referencedMedia) {
+    try {
       result.push({
         name: `media/${filename}`,
         bytes: await fs.readFile(path.join(directory, "media", filename)),
       });
+    } catch (error) {
+      throw new Error("备份所需的封面或背景缺失或无法读取。", { cause: error });
+    }
   }
   return result;
 }
@@ -121,7 +137,7 @@ export async function createBackupArchive({
   const files = [
     { name: "memos.json", bytes: jsonBytes(memos) },
     { name: "settings.json", bytes: jsonBytes(settings) },
-    ...(await screenshotFiles(screenshotDirectory)),
+    ...(await screenshotFiles(screenshotDirectory, settings)),
   ];
   if (files.length > MAX_BACKUP_FILES) throw new Error("备份文件数量过多。");
   const zip = new JSZip();
